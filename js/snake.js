@@ -30,6 +30,9 @@ function goinstant_init() {
   goinstant.connect(url, function (err, platform, lobby) {
     if (err) throw err;
 
+    // Listen for snakes
+    snakeKey = lobby.key('/snake');
+
     // If the user is unknown to us, try to get a username
     get_username();
 
@@ -94,19 +97,13 @@ function goinstant_init() {
         food = { x: value.x, y: value.y };
       }
 
-      // Listen for snakes
-      snakeKey = lobby.key('/snake');
-
       snakeKey.key("/" + myUserName).set(snake[myUserName], function(err) { 
         if(err) throw err; 
       });
 
       var snakeListener = function(val, context) { 
-
-        snakeKey.get(function(err, value, context) {
-          snake = value;
-          console.log("Snake is now",snake);
-        });
+        var username = context.key.substr('/snake/'.length);
+        snake[username] = context.value;
       };
 
       snakeKey.on('set', { bubble:true, listener: snakeListener });
@@ -148,20 +145,21 @@ function game() {
   //Draw the canvas all the time to avoid trails.
   draw_canvas();
 
+
   //Move snakes & detect collisions
-  _.keys(snake, function(i) {
+  _.each(_.keys(snake), function(i) {
     ctx.fillStyle = snake[i].color;
     for(var x = snake[i].length-1; x >= 0; x--) {
       ctx.fillRect((snake[i].blocks[x].x*blockSize), (snake[i].blocks[x].y*blockSize), blockSize, blockSize);
 
       //Inherit past position, only on our snake
-      if(x > 0 && i == myUserName) {
+      if(x > 0) {
         snake[i].blocks[x].x = snake[i].blocks[x-1].x;
         snake[i].blocks[x].y = snake[i].blocks[x-1].y;
       }
 
       //Collision with other snakes
-      _.keys(snake, function(u) {
+      _.each(_.keys(snake), function(u) {
         for (var x2 = snake[u].length-1; x2 >= 0; x2--) {
           if ((snake[i].blocks[x].x == snake[u].blocks[x2].x) && (snake[i].blocks[x].y == snake[u].blocks[x2].y) && (u != i)) {
             //collision detected
@@ -174,63 +172,60 @@ function game() {
     }
 
     //Move the snake, on our snake
-    if(i == myUserName) {
+    switch(snake[i].direction)
+    {
+      case 'up':
+        snake[i].blocks[0].y--;
+        break;
+      case 'down':
+        snake[i].blocks[0].y++;
+        break;
+      case 'left':
+        snake[i].blocks[0].x--;
+        break;
+      case 'right':
+        snake[i].blocks[0].x++;
+        break;
+    }
+
+    //Collision with walls
+    if(snake[i].blocks[0].y < -1 || snake[i].blocks[0].y > (h/blockSize) || snake[i].blocks[0].x < -1 || snake[i].blocks[0].x > (w/blockSize))
+      respawn_snake(i);
+
+    //Collision with food
+    if (!food.y) {
+      console.log("BREAKING:", food);
+    }
+    if(snake[i].blocks[0].y == food.y && snake[i].blocks[0].x == food.x) {
+      //Update score
+      snake[i].currentScore++;
+      if(snake[i].currentScore > snake[i].highScore)
+        snake[i].highScore = snake[i].currentScore;
+
+      //Increase Snake length
+      snake[i].length++;
+      snake[i].blocks[snake[i].length-1] = {
+        x: snake[i].blocks[snake[i].length-2].x,
+        y: snake[i].blocks[snake[i].length-2].y
+      };
+
       switch(snake[i].direction)
       {
         case 'up':
-          snake[i].blocks[0].y--;
+          snake[i].blocks[snake[i].length-1].y--;
           break;
         case 'down':
-          snake[i].blocks[0].y++;
+          snake[i].blocks[snake[i].length-1].y++;
           break;
         case 'left':
-          snake[i].blocks[0].x--;
+          snake[i].blocks[snake[i].length-1].x--;
           break;
         case 'right':
-          snake[i].blocks[0].x++;
+          snake[i].blocks[snake[i].length-1].x++;
           break;
       }
-
-      //Collision with walls
-      if(snake[i].blocks[0].y < -1 || snake[i].blocks[0].y > (h/blockSize) || snake[i].blocks[0].x < -1 || snake[i].blocks[0].x > (w/blockSize))
-        respawn_snake(i);
-
-      //Collision with food
-      if (!food.y) {
-        console.log("BREAKING:", food);
-      }
-      if(snake[i].blocks[0].y == food.y && snake[i].blocks[0].x == food.x) {
-        //Update score
-        snake[i].currentScore++;
-        if(snake[i].currentScore > snake[i].highScore)
-          snake[i].highScore = snake[i].currentScore;
-
-        //Increase Snake length
-        snake[i].length++;
-        snake[i].blocks[snake[i].length-1] = {
-          x: snake[i].blocks[snake[i].length-2].x,
-          y: snake[i].blocks[snake[i].length-2].y
-        };
-
-        switch(snake[i].direction)
-        {
-          case 'up':
-            snake[i].blocks[snake[i].length-1].y--;
-            break;
-          case 'down':
-            snake[i].blocks[snake[i].length-1].y++;
-            break;
-          case 'left':
-            snake[i].blocks[snake[i].length-1].x--;
-            break;
-          case 'right':
-            snake[i].blocks[snake[i].length-1].x++;
-            break;
-        }
-
-        create_food();
-      }
     }
+    create_food();
 
     //Draw food
     ctx.fillStyle = foodColor;
@@ -296,7 +291,11 @@ function respawn_snake(snakeUsername) {
     if(snake[snakeUsername].direction == 'left')
       snake[snakeUsername].blocks[x].x++;
   }
+  this.snakeKey.key("/" + snakeUsername).set(snake[snakeUsername], function(err) {
+    if(err) throw err;
+  });
 }
+
 
 //Draw canvas
 function draw_canvas() {
@@ -348,6 +347,11 @@ $(document).keydown(function(e){
   snake[myUserName].direction = "right";
   else if(key == "40" && snake[myUserName].direction != "up") 
   snake[myUserName].direction = "down";
+
+  snakeKey.key("/" + myUserName).set(snake[myUserName], function(err) {
+    if(err) throw err;
+  });
+
 });
 
 
