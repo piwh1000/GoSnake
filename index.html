@@ -51,6 +51,7 @@
 
 		// food
 		var food;
+        var foodKey;
 		var foodColor = 'red';
 
 		// snakes on a plane
@@ -155,9 +156,6 @@
 			        // If the user is unknown to us, try to get a username
 			        get_username();
 
-			        // Create Food
-			        create_food();
-
 					// Setup GoInstant Widgets
 					var UserList = goinstant.widgets.UserList;
 					var Notifications = goinstant.widgets.Notifications;
@@ -203,6 +201,23 @@
 						  notifications.publish(publishOpts);
 						});
 					});
+
+	             	// Listen for food
+					foodKey = lobby.key('/food');
+
+					var foodListener = function(val) { 
+						food = { x: val.x, y: val.y };
+					};
+
+					foodKey.on('set', { local: true, listener: foodListener });
+
+					foodKey.get(function(err, value, context) {
+						if(!value) {
+							create_food();
+						} else {
+							food = { x: value.x, y: value.y };
+						}
+					}); 
 
 					if(typeof game_loop != "undefined") clearInterval(game_loop);
 					game_loop = setInterval(game, 60);
@@ -261,37 +276,39 @@
 									respawn_snake(l, i);
 
 								//Collision with food
-								if(snake[l][i].blocks[0].y == food.y && snake[l][i].blocks[0].x == food.x) {
-									//Update score
-									snake[l][i].currentScore++;
-									if(snake[l][i].currentScore > snake[l][i].highScore)
-										snake[l][i].highScore = snake[l][i].currentScore;
-									
-									//Increase Snake length
-									snake[l][i].length++;
-									snake[l][i].blocks[snake[l][i].length-1] = {
-										x: snake[l][i].blocks[snake[l][i].length-2].x,
-										y: snake[l][i].blocks[snake[l][i].length-2].y
-									};
+								/*if(food.y && food.x) {
+									if(snake[l][i].blocks[0].y == food.y && snake[l][i].blocks[0].x == food.x) {
+										//Update score
+										snake[l][i].currentScore++;
+										if(snake[l][i].currentScore > snake[l][i].highScore)
+											snake[l][i].highScore = snake[l][i].currentScore;
+										
+										//Increase Snake length
+										snake[l][i].length++;
+										snake[l][i].blocks[snake[l][i].length-1] = {
+											x: snake[l][i].blocks[snake[l][i].length-2].x,
+											y: snake[l][i].blocks[snake[l][i].length-2].y
+										};
 
-									switch(snake[l][i].direction)
-									{
-										case 'up':
-											snake[l][i].blocks[snake[l][i].length-1].y--;
-											break;
-										case 'down':
-											snake[l][i].blocks[snake[l][i].length-1].y++;
-											break;
-										case 'left':
-											snake[l][i].blocks[snake[l][i].length-1].x--;
-											break;
-										case 'right':
-											snake[l][i].blocks[snake[l][i].length-1].x++;
-											break;
+										switch(snake[l][i].direction)
+										{
+											case 'up':
+												snake[l][i].blocks[snake[l][i].length-1].y--;
+												break;
+											case 'down':
+												snake[l][i].blocks[snake[l][i].length-1].y++;
+												break;
+											case 'left':
+												snake[l][i].blocks[snake[l][i].length-1].x--;
+												break;
+											case 'right':
+												snake[l][i].blocks[snake[l][i].length-1].x++;
+												break;
+										}
+
+										create_food();
 									}
-
-									create_food();
-								}
+								} */
 
 								//Draw food
 								ctx.fillStyle = foodColor;
@@ -379,7 +396,8 @@
 						food = {
 							x: Math.round(Math.random()*((w-200)-blockSize)/blockSize), 
 							y: Math.round(Math.random()*(h-blockSize)/blockSize), 
-						}; 
+						};
+						foodKey.set(food, function(err) { if(err) throw err; });
 					}
 
 					// Get the user's name
