@@ -23,7 +23,7 @@ var foodKey;
 var foodColor = 'black';
 
 // snakes on a plane
-var snake = [];
+var snake = {};
 var snakeKey;
 
 function goinstant_init() {
@@ -57,9 +57,10 @@ function goinstant_init() {
     // Create a new instances
     var userList = new UserList({
       room: lobby,
-        collapsed: false,
-        position: 'right'
+      collapsed: false,
+      position: 'right'
     });
+
     var notifications = new Notifications();
     var userColors = new UserColors({ room: lobby });
 
@@ -76,24 +77,6 @@ function goinstant_init() {
       message: myUserName + ' has joined.',
       displayToSelf: true
     };
-
-    // Change the user's name
-    lobby.user(function(err, user, userKey) {
-      if (err) throw err;
-
-      var displayNameKey = userKey.key('displayName');
-      displayNameKey.set(myUserName, function(err) {
-        if (err) throw err;
-
-        // randomly select a color for the user
-        userColors.choose(function(err, color) { 
-          snake[myUserName].color = color;
-        });
-
-        // publish a notification of the new user  
-        notifications.publish(publishOpts);
-      });
-    });
 
     // Listen for food
     foodKey = lobby.key('/food');
@@ -114,24 +97,50 @@ function goinstant_init() {
       // Listen for snakes
       snakeKey = lobby.key('/snake');
 
-      snakeKey.set(snake, function(err) { 
+      snakeKey.key("/" + myUserName).set(snake[myUserName], function(err) { 
         if(err) throw err; 
-        console.log('Setting Snake to ', snake);
       });
 
       var snakeListener = function(val, context) { 
-        console.log('Snake rcd ', val, context);
+
+        snakeKey.get(function(err, value, context) {
+          snake = value;
+          console.log("Snake is now",snake);
+        });
       };
 
-      snakeKey.on('set', { local: true, listener: snakeListener });
+      snakeKey.on('set', { bubble:true, listener: snakeListener });
 
       snakeKey.get(function(err, value, context) {
-        console.dir(value);
+        snake = value;
+        console.log("Set snake to:", snake);
+
+        // Change the user's name
+        lobby.user(function(err, user, userKey) {
+          if (err) throw err;
+
+          var displayNameKey = userKey.key('displayName');
+          displayNameKey.set(myUserName, function(err) {
+            if (err) throw err;
+
+            // randomly select a color for the user
+            userColors.choose(function(err, color) { 
+              if (!snake[myUserName]) {
+                console.log("WTF snake[",myUserName,"] doesn't exist?", snake);
+              }
+              snake[myUserName].color = color;
+            });
+
+            // publish a notification of the new user  
+            notifications.publish(publishOpts);
+          });
+        });
       }); 
 
       if(typeof game_loop != "undefined") clearInterval(game_loop);
       game_loop = setInterval(game, 60);
     });
+
   });
 }
 
@@ -140,7 +149,7 @@ function game() {
   draw_canvas();
 
   //Move snakes & detect collisions
-  for(var i in snake) {
+  _.keys(snake, function(i) {
     ctx.fillStyle = snake[i].color;
     for(var x = snake[i].length-1; x >= 0; x--) {
       ctx.fillRect((snake[i].blocks[x].x*blockSize), (snake[i].blocks[x].y*blockSize), blockSize, blockSize);
@@ -152,15 +161,16 @@ function game() {
       }
 
       //Collision with other snakes
-      for(var u in snake) {
-        for(var x2 = snake[u].length-1; x2 >= 0; x2--) {
-          if((snake[i].blocks[x].x == snake[u].blocks[x2].x) && (snake[i].blocks[x].y == snake[u].blocks[x2].y) && (u != i)) {
+      _.keys(snake, function(u) {
+        for (var x2 = snake[u].length-1; x2 >= 0; x2--) {
+          if ((snake[i].blocks[x].x == snake[u].blocks[x2].x) && (snake[i].blocks[x].y == snake[u].blocks[x2].y) && (u != i)) {
             //collision detected
+            console.log("respawning");
             respawn_snake(u);
             respawn_snake(i);
           }
         }
-      }
+      });
     }
 
     //Move the snake, on our snake
@@ -225,7 +235,7 @@ function game() {
     //Draw food
     ctx.fillStyle = foodColor;
     ctx.fillRect((food.x*blockSize), (food.y*blockSize), blockSize, blockSize);
-  }
+  });
 }
 
 $(document).ready(function () {
