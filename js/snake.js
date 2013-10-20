@@ -9,7 +9,7 @@ var debug = false;
 
 //User stuff
 var myUserID = 0;
-var myUserName = 'user0';
+var myUserName;
 
 //Defaults
 var url = 'https://goinstant.net/NinjaOtter/NodeKnockout';
@@ -93,6 +93,7 @@ function goinstant_init() {
     foodKey.get(function(err, value, context) {
       if(!value) {
         create_food();
+        console.log('food request 1');
       } else {
         food = { x: value.x, y: value.y };
       }
@@ -110,7 +111,6 @@ function goinstant_init() {
 
       snakeKey.get(function(err, value, context) {
         snake = value;
-        console.log("Set snake to:", snake);
 
         // Change the user's name
         lobby.user(function(err, user, userKey) {
@@ -122,9 +122,6 @@ function goinstant_init() {
 
             // randomly select a color for the user
             userColors.choose(function(err, color) { 
-              if (!snake[myUserName]) {
-                console.log("WTF snake[",myUserName,"] doesn't exist?", snake);
-              }
               snake[myUserName].color = color;
             });
 
@@ -159,6 +156,14 @@ function game() {
       }
 
       //Collision with other snakes
+      /*
+      @TODO: Build collision for snakes
+      The following implementation causes issues because out of sync issues.
+      User A hits into User B.  They both respawn and the co-ordinates are sent to each user.
+      The problem is one user's game loop is a few milliseconds behind, so that computer then
+      respawns everyone in a new location, so you have snakes flickering over the screen for
+      a few seconds.
+      
       _.each(_.keys(snake), function(u) {
         for (var x2 = snake[u].length-1; x2 >= 0; x2--) {
           if ((snake[i].blocks[x].x == snake[u].blocks[x2].x) && (snake[i].blocks[x].y == snake[u].blocks[x2].y) && (u != i)) {
@@ -168,35 +173,28 @@ function game() {
             respawn_snake(i);
           }
         }
-      });
+      }); */
     }
 
-    //Move the snake, on our snake
-    switch(snake[i].direction)
-    {
-      case 'up':
-        snake[i].blocks[0].y--;
-        break;
-      case 'down':
-        snake[i].blocks[0].y++;
-        break;
-      case 'left':
-        snake[i].blocks[0].x--;
-        break;
-      case 'right':
-        snake[i].blocks[0].x++;
-        break;
-    }
+    //Move the snake
+    if(snake[i].direction == 'up')
+      snake[i].blocks[0].y--;
+    if(snake[i].direction == 'down')
+      snake[i].blocks[0].y++;
+    if(snake[i].direction == 'left')
+      snake[i].blocks[0].x--;
+    if(snake[i].direction == 'right')
+      snake[i].blocks[0].x++;
 
-    //Collision with walls
-    if(snake[i].blocks[0].y < -1 || snake[i].blocks[0].y > (h/blockSize) || snake[i].blocks[0].x < -1 || snake[i].blocks[0].x > (w/blockSize))
+    //Collision with walls, only with our snake (this will get rid of other snakes from lost connections, etc...)
+    if(i == myUserName && (snake[i].blocks[0].y < -1 || snake[i].blocks[0].y > (h/blockSize) || snake[i].blocks[0].x < -1 || snake[i].blocks[0].x > (w/blockSize)))
       respawn_snake(i);
 
-    //Collision with food
-    if (!food.y) {
-      console.log("BREAKING:", food);
-    }
-    if(snake[i].blocks[0].y == food.y && snake[i].blocks[0].x == food.x) {
+    //Collision with food, only with our snake (this will prevent all other players from respawning the food)
+    if(i == myUserName && snake[i].blocks[0].y == food.y && snake[i].blocks[0].x == food.x) {
+      //create food
+      create_food();
+
       //Update score
       snake[i].currentScore++;
       if(snake[i].currentScore > snake[i].highScore)
@@ -209,34 +207,21 @@ function game() {
         y: snake[i].blocks[snake[i].length-2].y
       };
 
-      switch(snake[i].direction)
-      {
-        case 'up':
+      if(snake[i].direction == 'up')
           snake[i].blocks[snake[i].length-1].y--;
-          break;
-        case 'down':
+      if(snake[i].direction == 'down')
           snake[i].blocks[snake[i].length-1].y++;
-          break;
-        case 'left':
+      if(snake[i].direction == 'left')
           snake[i].blocks[snake[i].length-1].x--;
-          break;
-        case 'right':
+      if(snake[i].direction =='right')
           snake[i].blocks[snake[i].length-1].x++;
-          break;
-      }
     }
-    create_food();
 
     //Draw food
     ctx.fillStyle = foodColor;
     ctx.fillRect((food.x*blockSize), (food.y*blockSize), blockSize, blockSize);
   });
 }
-
-$(document).ready(function () {
-  // Init GoInstant
-  goinstant_init();
-});
 
 function respawn_snake(snakeUsername) {
   //spawn a new instance of the snake & destroy the old
@@ -258,21 +243,15 @@ function respawn_snake(snakeUsername) {
   new_y = Math.round(Math.random()*(h-blockSize)/blockSize);
 
   //Set new direction
-  switch(Math.round(Math.random()*3))
-  {
-    case 0: //up
+  var rand = Math.round(Math.random()*3);
+  if(rand == 0)
       snake[snakeUsername].direction = 'up';
-      break;
-    case 1: //down
+  if(rand == 1)
       snake[snakeUsername].direction = 'down';
-      break;
-    case 2: //left
+  if(rand == 2)
       snake[snakeUsername].direction = 'left';
-      break;
-    case 3: //right
+  if(rand == 3) 
       snake[snakeUsername].direction = 'right';
-      break;
-  }
 
   //Setup new snake blocks
   snake[snakeUsername].blocks[0].x = new_x;
@@ -291,6 +270,7 @@ function respawn_snake(snakeUsername) {
     if(snake[snakeUsername].direction == 'left')
       snake[snakeUsername].blocks[x].x++;
   }
+
   this.snakeKey.key("/" + snakeUsername).set(snake[snakeUsername], function(err) {
     if(err) throw err;
   });
@@ -323,6 +303,7 @@ function create_food() {
     y: Math.round(Math.random()*(h-blockSize)/blockSize), 
   };
   foodKey.set(food, function(err) { if(err) throw err; });
+  console.log('create food');
 }
 
 // Get the user's name
@@ -336,6 +317,18 @@ function get_username() {
 
   return;
 } 
+
+$(document).ready(function () {
+  // Init GoInstant
+  goinstant_init();
+});
+
+$(window).on('beforeunload', function(){
+  snakeKey.key("/" + myUserName).remove(function(err, value, context) {
+    if (err) throw err;
+  });
+});
+
 // Keyboard Controls
 $(document).keydown(function(e){
   var key = e.which;
@@ -351,7 +344,6 @@ $(document).keydown(function(e){
   snakeKey.key("/" + myUserName).set(snake[myUserName], function(err) {
     if(err) throw err;
   });
-
 });
 
 
