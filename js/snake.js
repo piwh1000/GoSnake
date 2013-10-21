@@ -1,71 +1,68 @@
 //Canvas stuff
-var canvas = $("#canvas")[0];
-var ctx = canvas.getContext("2d");
-var w = $("#canvas").width();
-var h = $("#canvas").height();
+var canvas = {};
+canvas.element = $("#canvas")[0];
+canvas.context = canvas.element.getContext("2d");
+canvas.width = $("#canvas").width();
+canvas.height = $("#canvas").height();
 
 //Debug stuff
-var debug = false;
+var DEBUG_MODE = false;
 
 //User stuff
 var myUserID = 0;
 var myUserName;
 
 //Defaults
-var url = 'https://goinstant.net/NinjaOtter/NodeKnockout';
-var snakeLength = 5;
-var score = 0;
-var blockSize = 10;
+var GOINSTANT_APP_URL = 'https://goinstant.net/NinjaOtter/NodeKnockout';
+var INITIAL_SNAKE_LENGTH = 5;
+var INITIAL_SCORE = 0;
+var BLOCK_SIZE = 10;
 
 // food
-var food;
-var foodKey;
-var foodColor = 'black';
+var food = {
+  color: 'black'
+};
 
-// snakes on a plane
-var snake = {};
+// snakes
+var snakes = {};
 var snakeKey;
 
-function goinstant_init() {
-  goinstant.connect(url, function (err, platform, lobby) {
-    if (err) throw err;
+function initializeSnake(userName) {
+  snakes[userName] = {
+    blocks: [],
+    color: '',
+    currentScore: 0,
+    highScore: 0,
+    length: INITIAL_SNAKE_LENGTH,
+    direction: ''
+  };
+  for(var x = 0; x < snakes[myUserName].length; x++) {
+    snakes[myUserName].blocks[x] = { x: 0, y: 0 };
+  }
+}
+function initializeGame() {
 
-    // Listen for snakes
-    snakeKey = lobby.key('/snake');
-
-    // If the user is unknown to us, try to get a username
-    get_username();
-
-    //Create this user's snake
-    snake[myUserName] = {
-      blocks: {},
-      color: '',
-      currentScore: 0,
-      highScore: 0,
-      length: snakeLength,
-      direction: ''
-    };
-
-    for(var x = 0; x < snake[myUserName].length; x++) {
-      snake[myUserName].blocks[x] = { x: 0, y: 0 };
+  goinstant.connect(GOINSTANT_APP_URL, function (err, platform, lobby) {
+    if (err) {
+      throw err;
     }
 
-    respawn_snake(myUserName);
+    snakeKey = lobby.key('/snakes');
+    food.key = lobby.key('/food');
 
-    // Setup GoInstant Widgets
-    var UserList = goinstant.widgets.UserList;
-    var Notifications = goinstant.widgets.Notifications;
-    var UserColors = goinstant.widgets.UserColors;
+    getUsername();
+    initializeSnake(myUserName);
+    spawnSnake(myUserName);
 
-    // Create a new instances
-    var userList = new UserList({
+    // Setup GoInstant widgets
+    var userList = new goinstant.widgets.UserList({
       room: lobby,
       collapsed: false,
       position: 'right'
     });
 
-    var notifications = new Notifications();
-    var userColors = new UserColors({ room: lobby });
+    var notifications = new goinstant.widgets.Notifications();
+    var userColors = new goinstant.widgets.UserColors({ room: lobby });
 
     // Initialize the UserList widget
     userList.initialize(function(err) { });
@@ -73,44 +70,46 @@ function goinstant_init() {
     // Get all notifications
     notifications.subscribe(lobby, function(err) { });
 
-    // Create notification
-    var publishOpts = {
-      room: lobby,
-      type: 'success',
-      message: myUserName + ' has joined.',
-      displayToSelf: true
-    };
-
-    // Listen for food
-    foodKey = lobby.key('/food');
-
     var foodListener = function(val) { 
       food = { x: val.x, y: val.y };
     };
 
-    foodKey.on('set', { local: true, listener: foodListener });
+    food.key.on('set', { local: true, listener: foodListener });
 
-    foodKey.get(function(err, value, context) {
-      if(!value) {
-        create_food();
-        console.log('food request 1');
+    food.key.get(function(err, value, context) {
+      if (value) {
+        food = {
+          x: value.x,
+          y: value.y
+        };
       } else {
-        food = { x: value.x, y: value.y };
+        spawnFood();
       }
 
-      snakeKey.key("/" + myUserName).set(snake[myUserName], function(err) { 
-        if(err) throw err; 
+      snakeKey.key("/" + myUserName).set(snakes[myUserName], function(err) { 
+        if (err) {
+          throw err; 
+        }
       });
 
       var snakeListener = function(val, context) { 
-        var username = context.key.substr('/snake/'.length);
-        snake[username] = context.value;
+        var username = context.key.substr('/snakes/'.length);
+        snakes[username] = context.value;
       };
 
       snakeKey.on('set', { bubble:true, listener: snakeListener });
 
       snakeKey.get(function(err, value, context) {
-        snake = value;
+        if (err) {
+          throw err;
+        }
+        snakes = value;
+
+        // randomly select a color for the user
+        userColors.choose(function(err, color) { 
+          snakes[myUserName].color = color;
+        });
+
 
         // Change the user's name
         lobby.user(function(err, user, userKey) {
@@ -120,229 +119,298 @@ function goinstant_init() {
           displayNameKey.set(myUserName, function(err) {
             if (err) throw err;
 
-            // randomly select a color for the user
-            userColors.choose(function(err, color) { 
-              snake[myUserName].color = color;
-            });
+            var publishOpts = {
+              room: lobby,
+              type: 'success',
+              message: myUserName + ' has joined.',
+              displayToSelf: true
+            };
 
             // publish a notification of the new user  
-            notifications.publish(publishOpts);
+            notifications.publish(publishOpts, function(err) {
+              if (err) {
+                throw err;
+              }
+
+              if(typeof gameTimer != "undefined") {
+                clearInterval(gameTimer);
+              }
+              gameTimer = setInterval(gameTick, 60);
+            });
           });
         });
       }); 
-
-      if(typeof game_loop != "undefined") clearInterval(game_loop);
-      game_loop = setInterval(game, 60);
     });
-
   });
 }
 
-function game() {
+function gameTick() {
   //Draw the canvas all the time to avoid trails.
-  draw_canvas();
-
+  drawCanvas();
 
   //Move snakes & detect collisions
-  _.each(_.keys(snake), function(i) {
-    ctx.fillStyle = snake[i].color;
-    for(var x = snake[i].length-1; x >= 0; x--) {
-      ctx.fillRect((snake[i].blocks[x].x*blockSize), (snake[i].blocks[x].y*blockSize), blockSize, blockSize);
+  _.each(_.keys(snakes), function(username) {
+    var currentSnake = snakes[username];
 
-      //Inherit past position, only on our snake
-      if(x > 0) {
-        snake[i].blocks[x].x = snake[i].blocks[x-1].x;
-        snake[i].blocks[x].y = snake[i].blocks[x-1].y;
+    drawSnake(currentSnake);
+    incrementSnakePosition(username);
+
+    // only with our snake
+    if(username == myUserName) {
+
+      if (checkWallCollision(username)) {
+        spawnSnake(username);
       }
 
-      //Collision with other snakes
-      /*
-      @TODO: Build collision for snakes
-      The following implementation causes issues because out of sync issues.
-      User A hits into User B.  They both respawn and the co-ordinates are sent to each user.
-      The problem is one user's game loop is a few milliseconds behind, so that computer then
-      respawns everyone in a new location, so you have snakes flickering over the screen for
-      a few seconds.
-      
-      _.each(_.keys(snake), function(u) {
-        for (var x2 = snake[u].length-1; x2 >= 0; x2--) {
-          if ((snake[i].blocks[x].x == snake[u].blocks[x2].x) && (snake[i].blocks[x].y == snake[u].blocks[x2].y) && (u != i)) {
-            //collision detected
-            console.log("respawning");
-            respawn_snake(u);
-            respawn_snake(i);
-          }
-        }
-      }); */
+      // This will prevent all other players from respawning the food
+      if (checkFoodCollision(username)) {
+
+        increaseSnakeLength(username);
+        spawnFood();
+        currentSnake.currentScore++;
+        updateHighScore(username);
+      }
     }
-
-    //Move the snake
-    if(snake[i].direction == 'up')
-      snake[i].blocks[0].y--;
-    if(snake[i].direction == 'down')
-      snake[i].blocks[0].y++;
-    if(snake[i].direction == 'left')
-      snake[i].blocks[0].x--;
-    if(snake[i].direction == 'right')
-      snake[i].blocks[0].x++;
-
-    //Collision with walls, only with our snake (this will get rid of other snakes from lost connections, etc...)
-    if(i == myUserName && (snake[i].blocks[0].y < -1 || snake[i].blocks[0].y > (h/blockSize) || snake[i].blocks[0].x < -1 || snake[i].blocks[0].x > (w/blockSize)))
-      respawn_snake(i);
-
-    //Collision with food, only with our snake (this will prevent all other players from respawning the food)
-    if(i == myUserName && snake[i].blocks[0].y == food.y && snake[i].blocks[0].x == food.x) {
-      //create food
-      create_food();
-
-      //Update score
-      snake[i].currentScore++;
-      if(snake[i].currentScore > snake[i].highScore)
-        snake[i].highScore = snake[i].currentScore;
-
-      //Increase Snake length
-      snake[i].length++;
-      snake[i].blocks[snake[i].length-1] = {
-        x: snake[i].blocks[snake[i].length-2].x,
-        y: snake[i].blocks[snake[i].length-2].y
-      };
-
-      if(snake[i].direction == 'up')
-          snake[i].blocks[snake[i].length-1].y--;
-      if(snake[i].direction == 'down')
-          snake[i].blocks[snake[i].length-1].y++;
-      if(snake[i].direction == 'left')
-          snake[i].blocks[snake[i].length-1].x--;
-      if(snake[i].direction =='right')
-          snake[i].blocks[snake[i].length-1].x++;
-    }
-
-    //Draw food
-    ctx.fillStyle = foodColor;
-    ctx.fillRect((food.x*blockSize), (food.y*blockSize), blockSize, blockSize);
   });
+
+  drawFood();
 }
 
-function respawn_snake(snakeUsername) {
+function incrementSnakePosition(username) {
+  var currentSnake = snakes[username];
+  switch(currentSnake.direction) {
+    case 'up':
+      currentSnake.blocks[0].y--;
+      break;
+    case 'down':
+      currentSnake.blocks[0].y++;
+      break;
+    case 'left':
+      currentSnake.blocks[0].x--;
+      break;
+    case 'right':
+      currentSnake.blocks[0].x++;
+      break;
+  }
+}
+
+function increaseSnakeLength(username) {
+  var currentSnake = snakes[username];
+  currentSnake.length++;
+
+  currentSnake.blocks[currentSnake.length-1] = {
+    x: currentSnake.blocks[currentSnake.length-2].x,
+    y: currentSnake.blocks[currentSnake.length-2].y
+  };
+
+  switch(currentSnake.direction) {
+    case 'up':
+      currentSnake.blocks[currentSnake.length-1].y--;
+      break;
+    case 'down':
+      currentSnake.blocks[currentSnake.length-1].y++;
+      break;
+    case 'left':
+      currentSnake.blocks[currentSnake.length-1].x--;
+      break;
+    case 'right':
+      currentSnake.blocks[currentSnake.length-1].x++;
+      break;
+    default:
+      throw new Error("invalid snake direction");
+  }
+}
+
+function drawFood() {
+  canvas.context.fillStyle = food.color;
+  canvas.context.fillRect((food.x*BLOCK_SIZE), (food.y*BLOCK_SIZE), BLOCK_SIZE, BLOCK_SIZE);
+}
+
+function drawSnake(currentSnake) {
+  canvas.context.fillStyle = currentSnake.color;
+  for(var x = currentSnake.length-1; x >= 0; x--) {
+    canvas.context.fillRect((currentSnake.blocks[x].x*BLOCK_SIZE), (currentSnake.blocks[x].y*BLOCK_SIZE), BLOCK_SIZE, BLOCK_SIZE);
+
+    //Inherit past position, only on our snake
+    if(x > 0) {
+      currentSnake.blocks[x].x = currentSnake.blocks[x-1].x;
+      currentSnake.blocks[x].y = currentSnake.blocks[x-1].y;
+    }
+  }
+}
+
+// this will get rid of other snakes from lost connections, etc.
+function checkWallCollision(username) {
+  if (currentSnake.blocks[0].y < -1 ||
+       currentSnake.blocks[0].y > (canvas.height/BLOCK_SIZE) ||
+       currentSnake.blocks[0].x < -1 ||
+       currentSnake.blocks[0].x > (canvas.width/BLOCK_SIZE)) {
+    return true;
+  }
+  return false;
+}
+
+function checkFoodCollision(username) {
+  var currentSnake = snakes[username];
+  if(currentSnake.blocks[0].y == food.y && currentSnake.blocks[0].x == food.x) {
+    return true;
+  }
+  return false;
+}
+
+function updateHighScore(userName) {
+  var currentSnake = snakes[snakeUsername];
+  if(currentSnake.highScore < currentSnake.currentScore) {
+    currentSnake.highScore = currentSnake.currentScore;
+  }
+}
+
+function spawnSnake(snakeUsername) {
   //spawn a new instance of the snake & destroy the old
-  var new_x;
-  var new_y;
+  var currentSnake = snakes[snakeUsername];
 
   //Set length to default
-  snake[snakeUsername].length = snakeLength;
+  currentSnake.length = INITIAL_SNAKE_LENGTH;
 
   //Did the user hit a high score?
-  if(snake[snakeUsername].highScore < snake[snakeUsername].score)
-    snake[snakeUsername].highScore = snake[snakeUsername].score;
+  updateHighScore(snakeUsername);
 
   //Reset score
-  snake[snakeUsername].score = score;
+  currentSnake.currentScore = INTIAL_SCORE;
 
   //Find new spawn location
-  new_x = Math.round(Math.random()*(w-blockSize)/blockSize); 
-  new_y = Math.round(Math.random()*(h-blockSize)/blockSize);
+  var newPos = {
+    x: Math.round(Math.random()*(canvas.width-BLOCK_SIZE)/BLOCK_SIZE),
+    y: Math.round(Math.random()*(canvas.height-BLOCK_SIZE)/BLOCK_SIZE)
+  };
 
   //Set new direction
-  var rand = Math.round(Math.random()*3);
-  if(rand == 0)
-      snake[snakeUsername].direction = 'up';
-  if(rand == 1)
-      snake[snakeUsername].direction = 'down';
-  if(rand == 2)
-      snake[snakeUsername].direction = 'left';
-  if(rand == 3) 
-      snake[snakeUsername].direction = 'right';
-
-  //Setup new snake blocks
-  snake[snakeUsername].blocks[0].x = new_x;
-  snake[snakeUsername].blocks[0].y = new_y;
-
-  for(var x = 1; x < snake[snakeUsername].length; x++) {
-    snake[snakeUsername].blocks[x].x = snake[snakeUsername].blocks[x-1].x;
-    snake[snakeUsername].blocks[x].y = snake[snakeUsername].blocks[x-1].y;
-
-    if(snake[snakeUsername].direction == 'up')
-      snake[snakeUsername].blocks[x].y--;
-    if(snake[snakeUsername].direction == 'down')
-      snake[snakeUsername].blocks[x].y++;
-    if(snake[snakeUsername].direction == 'right')
-      snake[snakeUsername].blocks[x].x--;
-    if(snake[snakeUsername].direction == 'left')
-      snake[snakeUsername].blocks[x].x++;
+  switch(Math.round(Math.random()*3)) {
+    case 0:
+      currentSnake.direction = 'up';
+      break;
+    case 1:
+      currentSnake.direction = 'down';
+      break;
+    case 2:
+      currentSnake.direction = 'left';
+      break;
+    case 3:
+      currentSnake.direction = 'right';
+      break;
   }
 
-  this.snakeKey.key("/" + snakeUsername).set(snake[snakeUsername], function(err) {
+  //Setup new snake blocks
+  currentSnake.blocks[0].x = newPos.x;
+  currentSnake.blocks[0].y = newPos.y;
+
+  for(var x = 1; x < currentSnake.length; x++) {
+    currentSnake.blocks[x].x = currentSnake.blocks[x-1].x;
+    currentSnake.blocks[x].y = currentSnake.blocks[x-1].y;
+
+    switch(currentSnake.direction){
+      case 'up':
+        currentSnake.blocks[x].y--;
+        break;
+      case 'down':
+        currentSnake.blocks[x].y++;
+        break;
+      case 'right':
+        currentSnake.blocks[x].x--;
+        break;
+      case 'left':
+        currentSnake.blocks[x].x++;
+        break;
+      default:
+        throw new Error("invalid snake direction");
+    }
+  }
+
+  this.snakeKey.key("/" + snakeUsername).set(currentSnake, function(err) {
     if(err) throw err;
   });
 }
 
-
-//Draw canvas
-function draw_canvas() {
-  if(debug === true) {
-    for(var x=0; x<(w/blockSize); x++) {
-      for(var y=0; y<(h/blockSize); y++) {
-        ctx.fillStyle = "white";
-        ctx.fillRect((x*blockSize), (y*blockSize), blockSize, blockSize);
-        ctx.strokeStyle = "black";
-        ctx.strokeRect((x*blockSize), (y*blockSize), blockSize, blockSize);
-      }
+function drawDebugCanvas() {
+  for(var x=0; x<(canvas.width/BLOCK_SIZE); x++) {
+    for(var y=0; y<(canvas.height/BLOCK_SIZE); y++) {
+      canvas.context.fillStyle = "white";
+      canvas.context.fillRect((x*BLOCK_SIZE), (y*BLOCK_SIZE), BLOCK_SIZE, BLOCK_SIZE);
+      canvas.context.strokeStyle = "black";
+      canvas.context.strokeRect((x*BLOCK_SIZE), (y*BLOCK_SIZE), BLOCK_SIZE, BLOCK_SIZE);
     }
-  } else {
-    ctx.fillStyle = "white";
-    ctx.fillRect(0, 0, w, h);
-    ctx.strokeStyle = "black";
-    ctx.strokeRect(0, 0, w, h);			
   }
 }
 
-// You can't have snakes without food!!
-function create_food() {
-  food = {
-    x: Math.round(Math.random()*((w-200)-blockSize)/blockSize), 
-    y: Math.round(Math.random()*(h-blockSize)/blockSize), 
-  };
-  foodKey.set(food, function(err) { if(err) throw err; });
-  console.log('create food');
+function drawCanvas() {
+  if (DEBUG_MODE) {
+    drawDebugCanvas();
+  } else {
+    canvas.context.fillStyle = "white";
+    canvas.context.fillRect(0, 0, canvas.width, canvas.height);
+    canvas.context.strokeStyle = "black";
+    canvas.context.strokeRect(0, 0, canvas.width, canvas.height);			
+  }
 }
 
-// Get the user's name
-function get_username() {
+function spawnFood() {
+  food = {
+    x: Math.round(Math.random()*((canvas.width-200)-BLOCK_SIZE)/BLOCK_SIZE), 
+    y: Math.round(Math.random()*(canvas.height-BLOCK_SIZE)/BLOCK_SIZE), 
+  };
+  food.key.set(food, function(err) {
+    if(err) {
+      throw err;
+    }
+  });
+}
+
+// If the user is unknown to us, try to get a username
+function getUsername() {
   myUserName = sessionStorage.getItem('gi_username');
-  if (myUserName) return;
+  if (myUserName) {
+    return;
+  }
 
   myUserName = prompt('What is your name?', 'Guest');
-  if (!myUserName) myUserName = 'Guest';
+  if (!myUserName){
+    myUserName = 'Guest';
+  }
   sessionStorage.setItem('gi_username', myUserName);
-
-  return;
 } 
 
 $(document).ready(function () {
   // Init GoInstant
-  goinstant_init();
+  initializeGame();
 });
 
 $(window).on('beforeunload', function(){
   snakeKey.key("/" + myUserName).remove(function(err, value, context) {
-    if (err) throw err;
+    if (err) {
+      throw err;
+    }
   });
 });
 
 // Keyboard Controls
 $(document).keydown(function(e){
   var key = e.which;
-  if(key == "37" && snake[myUserName].direction != "right")
-  snake[myUserName].direction = "left";
-  else if(key == "38" && snake[myUserName].direction != "down")
-  snake[myUserName].direction = "up";
-  else if(key == "39" && snake[myUserName].direction != "left")
-  snake[myUserName].direction = "right";
-  else if(key == "40" && snake[myUserName].direction != "up") 
-  snake[myUserName].direction = "down";
+  var currentSnake = snakes[myUserName];
+  if(key == "37" && currentSnake.direction != "right") {
+    currentSnake.direction = "left";
+  } else if(key == "38" && currentSnake.direction != "down") {
+    currentSnake.direction = "up";
+  } else if(key == "39" && currentSnake.direction != "left") {
+    currentSnake.direction = "right";
+  } else if(key == "40" && currentSnake.direction != "up") {
+    currentSnake.direction = "down";
+  }
+  console.log("CurrentDirection:",snakes[myUserName].direction);
 
-  snakeKey.key("/" + myUserName).set(snake[myUserName], function(err) {
-    if(err) throw err;
+  snakeKey.key("/" + myUserName).set(currentSnake, function(err) {
+    if(err) {
+      throw err;
+    }
   });
 });
 
