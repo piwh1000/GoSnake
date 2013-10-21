@@ -60,15 +60,13 @@ function initializeGame() {
       collapsed: false,
       position: 'right'
     });
+    userList.initialize();
 
-    var notifications = new goinstant.widgets.Notifications();
+    // randomly select a color for the user
     var userColors = new goinstant.widgets.UserColors({ room: lobby });
-
-    // Initialize the UserList widget
-    userList.initialize(function(err) { });
-
-    // Get all notifications
-    notifications.subscribe(lobby, function(err) { });
+    userColors.choose(function(err, color) {
+      snakes[myUserName].color = color;
+    });
 
     var foodListener = function(val) { 
       food = { x: val.x, y: val.y };
@@ -105,12 +103,6 @@ function initializeGame() {
         }
         snakes = value;
 
-        // randomly select a color for the user
-        userColors.choose(function(err, color) { 
-          snakes[myUserName].color = color;
-        });
-
-
         // Change the user's name
         lobby.user(function(err, user, userKey) {
           if (err) throw err;
@@ -125,6 +117,11 @@ function initializeGame() {
               message: myUserName + ' has joined.',
               displayToSelf: true
             };
+
+            // Get all notifications of users joining
+
+            var notifications = new goinstant.widgets.Notifications();
+            notifications.subscribe(lobby);
 
             // publish a notification of the new user  
             notifications.publish(publishOpts, function(err) {
