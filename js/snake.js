@@ -27,8 +27,10 @@ var food = {
 var snakes = {};
 var snakeKey;
 
-function initializeSnake(userName) {
-  snakes[userName] = {
+var lobby;
+
+function initializeSnake(cb) {
+  snakes[myUserName] = {
     blocks: [],
     color: '',
     currentScore: 0,
@@ -39,105 +41,132 @@ function initializeSnake(userName) {
   for(var x = 0; x < snakes[myUserName].length; x++) {
     snakes[myUserName].blocks[x] = { x: 0, y: 0 };
   }
-}
-function initializeGame() {
-
-  goinstant.connect(GOINSTANT_APP_URL, function (err, platform, lobby) {
+  var snakeListener = function(val, context) {
+    var username = context.key.substr('/snakes/'.length);
+    snakes[username] = context.value;
+  };
+  snakeKey.on('set', { bubble:true, listener: snakeListener });
+  snakeKey.key("/" + myUserName).set(snakes[myUserName], function(err) {
     if (err) {
       throw err;
     }
+    snakeKey.get(function(err, value, context) {
+      if (err) {
+        throw err;
+      }
+      snakes = value;
+      spawnSnake(myUserName);
+      return cb();
+    });
+  });
+}
+function initializeGame() {
+
+  goinstant.connect(GOINSTANT_APP_URL, function (err, platform, room) {
+    if (err) {
+      throw err;
+    }
+    lobby = room;
 
     snakeKey = lobby.key('/snakes');
     food.key = lobby.key('/food');
 
-    getUsername();
-    initializeSnake(myUserName);
-    spawnSnake(myUserName);
 
-    // Setup GoInstant widgets
-    var userList = new goinstant.widgets.UserList({
-      room: lobby,
-      collapsed: false,
-      position: 'right'
-    });
-    userList.initialize();
-
-    // randomly select a color for the user
-    var userColors = new goinstant.widgets.UserColors({ room: lobby });
-    userColors.choose(function(err, color) {
-      snakes[myUserName].color = color;
-    });
-
-    var foodListener = function(val) { 
-      food = { x: val.x, y: val.y };
-    };
-
-    food.key.on('set', { local: true, listener: foodListener });
-
-    food.key.get(function(err, value, context) {
-      if (value) {
-        food = {
-          x: value.x,
-          y: value.y
-        };
-      } else {
-        spawnFood();
+    async.series([
+      initializeFood(next),
+      initializeSnake(next),
+      initializeUser(next),
+      initializeNotifications(next),
+      initializeGameLoop(next)
+    ], function(err) {
+      if (err) {
+        throw err;
       }
-
-      snakeKey.key("/" + myUserName).set(snakes[myUserName], function(err) { 
-        if (err) {
-          throw err; 
-        }
-      });
-
-      var snakeListener = function(val, context) { 
-        var username = context.key.substr('/snakes/'.length);
-        snakes[username] = context.value;
-      };
-
-      snakeKey.on('set', { bubble:true, listener: snakeListener });
-
-      snakeKey.get(function(err, value, context) {
-        if (err) {
-          throw err;
-        }
-        snakes = value;
-
-        // Change the user's name
-        lobby.user(function(err, user, userKey) {
-          if (err) throw err;
-
-          var displayNameKey = userKey.key('displayName');
-          displayNameKey.set(myUserName, function(err) {
-            if (err) throw err;
-
-            var publishOpts = {
-              room: lobby,
-              type: 'success',
-              message: myUserName + ' has joined.',
-              displayToSelf: true
-            };
-
-            // Get all notifications of users joining
-
-            var notifications = new goinstant.widgets.Notifications();
-            notifications.subscribe(lobby);
-
-            // publish a notification of the new user  
-            notifications.publish(publishOpts, function(err) {
-              if (err) {
-                throw err;
-              }
-
-              if(typeof gameTimer != "undefined") {
-                clearInterval(gameTimer);
-              }
-              gameTimer = setInterval(gameTick, 60);
-            });
-          });
-        });
-      }); 
     });
+  });
+}
+
+// If the user is unknown to us, try to get a username
+function initializeUsername(cb) {
+  myUserName = sessionStorage.getItem('gi_username');
+  if (!myUserName) {
+    myUserName = prompt('What is your name?', 'Guest');
+    if (!myUserName){
+      myUserName = 'Guest';
+    }
+    sessionStorage.setItem('gi_username', myUserName);
+  }
+  var userList = new goinstant.widgets.UserList({
+    room: lobby,
+    collapsed: false,
+    position: 'right'
+  });
+  lobby.user(function(err, user, userKey) {
+    if (err) {
+      throw err;
+    }
+
+    var displayNameKey = userKey.key('displayName');
+    displayNameKey.set(myUserName, function(err) {
+      if (err) {
+        throw err;
+      }
+      userList.initialize(function(err) {
+        // randomly select a color for the user
+        var userColors = new goinstant.widgets.UserColors({ room: lobby });
+        userColors.choose(function(err, color) {
+          snakes[myUserName].color = color;
+        });
+      });
+    });
+  });
+} 
+
+function initializeNotifications(cb) {
+  var notifications = new goinstant.widgets.Notifications();
+
+  // Get all notifications of users joining
+  notifications.subscribe(lobby);
+
+  var msg = myUserName + ' has joined.';
+
+  // publish a notification of the new user
+  notifications.publish({
+    room: lobby,
+    type: 'success',
+    message: msg,
+    displayToSelf: true
+  }, function(err) {
+    if (err) {
+      throw err;
+    }
+    return cb();
+  });
+}
+
+function initializeGameLoop() {
+  if(typeof gameTimer != "undefined") {
+    clearInterval(gameTimer);
+  }
+  gameTimer = setInterval(gameTick, 60);
+  return cb();
+}
+
+function initializeFood(cb) {
+  var foodListener = function(val) {
+    food = { x: val.x, y: val.y };
+  };
+
+  food.key.on('set', { local: true, listener: foodListener });
+  food.key.get(function(err, value, context) {
+    if (value) {
+      food = {
+        x: value.x,
+        y: value.y
+      };
+      return cb();
+    }
+    spawnFood(cb);
   });
 }
 
@@ -350,7 +379,7 @@ function drawCanvas() {
   }
 }
 
-function spawnFood() {
+function spawnFood(cb) {
   food = {
     x: Math.round(Math.random()*((canvas.width-200)-BLOCK_SIZE)/BLOCK_SIZE), 
     y: Math.round(Math.random()*(canvas.height-BLOCK_SIZE)/BLOCK_SIZE), 
@@ -359,22 +388,9 @@ function spawnFood() {
     if(err) {
       throw err;
     }
+    return cb();
   });
 }
-
-// If the user is unknown to us, try to get a username
-function getUsername() {
-  myUserName = sessionStorage.getItem('gi_username');
-  if (myUserName) {
-    return;
-  }
-
-  myUserName = prompt('What is your name?', 'Guest');
-  if (!myUserName){
-    myUserName = 'Guest';
-  }
-  sessionStorage.setItem('gi_username', myUserName);
-} 
 
 $(document).ready(function () {
   // Init GoInstant
