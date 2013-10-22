@@ -8,12 +8,18 @@ canvas.height = $("#canvas").height();
 //Debug stuff
 var DEBUG_MODE = false;
 
+//Sharing stuff
+var GO_SNAKE_ID = 'go_snake_room';
+var QUERY_REGEX = new RegExp('\\?(.*)\\b' + GO_SNAKE_ID + '=([^&#\/]*)(.*)');
+var roomName;
+var query;
+
 //User stuff
 var myUserID = 0;
 var myUserName;
 
 //Defaults
-var GOINSTANT_APP_URL = 'https://goinstant.net/NinjaOtter/NodeKnockout';
+var GO_SNAKE_APP_URL = 'https://goinstant.net/NinjaOtter/NodeKnockout';
 var INITIAL_SNAKE_LENGTH = 5;
 var INITIAL_SCORE = 0;
 var BLOCK_SIZE = 10;
@@ -90,27 +96,139 @@ function initializeHighScore(cb) {
 
 function initializeGame() {
 
-  goinstant.connect(GOINSTANT_APP_URL, function (err, platform, room) {
-    if (err) {
-      throw err;
-    }
-    lobby = room;
-
-    snakeKey = lobby.key('/snakes');
-
-    async.series([
-      initializeUser,
-      initializeFood,
-      initializeHighScore,
-      initializeSnake,
-      initializeNotifications,
-      initializeGameLoop
-    ], function(err) {
+  if (setRoomName()) {
+    goinstant.connect(GO_SNAKE_APP_URL, { room: roomName }, function(err, platform, room) {
       if (err) {
         throw err;
       }
+      lobby = room;
+
+      snakeKey = lobby.key('/snakes');
+
+      async.series([
+        initializeUser,
+        initializeFood,
+        initializeHighScore,
+        initializeSnake,
+        initializeNotifications,
+        initializeGameLoop,
+        initializeSharing
+      ], function(err) {
+        if (err) {
+          throw err;
+        }
+      });
     });
-  });
+  }
+}
+
+function initializeSharing(cb) {
+  // We are interested in knowing if there is a new query on the URL when the
+  // slide show is loaded. This detects the use of the query parameter in the
+  // default slide deck to change the transitions and themes.
+  var parser = document.createElement('a');
+  parser.href = window.location.toString();
+
+  // Create the sharing URL by adding the roomName as a query parameter to
+  // the current window.location.
+  if (parser.search) {
+    parser.search += '&' + GO_SNAKE_ID + '=' + roomName;
+  } else {
+    parser.search = '?' + GO_SNAKE_ID + '=' + roomName;
+  }
+
+  // Create Share Button
+  addShareButton(parser.href);
+}
+
+function addShareButton(text) {
+  var shareBtn = document.createElement('div');
+  var cssBtn = 'display: block; position: fixed; bottom: 1em; left: 0; ' +
+    'z-index: 9999; height: 17px; padding: 9px; font-size: 15px; ' +
+    'font-family: sans-serif; font-weight: bold; background: white; ' +
+    'border-radius: 0 3px 3px 0; border: 1px solid #ccc; ' +
+    'text-decoration: none; color: #15A815;';
+  var cssURL = 'font-weight: regular;';
+
+  shareBtn.innerHTML = 'Share';
+  shareBtn.style.cssText = cssBtn;
+
+  var main = document.getElementsByClassName('instructions')[0];
+  main.parentNode.insertBefore(shareBtn, main);
+
+  shareBtn.onmouseover = function() {
+    if (this.poppedOut) {
+      return;
+    }
+    this.poppedOut = true;
+
+    this.innerHTML +=
+      '<input id="gi-share-text" type="text" value="' + text +
+      '" style="margin: -5px 0 0 15px; padding: 5px; width: 180px;"/>';
+
+    this.style.width = '250px';
+    document.getElementById('gi-share-text').select();
+  };
+
+  shareBtn.onmouseout = function(evt) {
+    if (evt.relatedTarget && evt.relatedTarget.id === 'gi-share-text') {
+      return;
+    }
+    this.poppedOut = false;
+
+    this.innerHTML = 'Share';
+    this.style.width = 'auto';
+  };
+}
+
+function setRoomName() {
+  // if we have the go-SNAKE room in sessionStorage then just connect to
+  // the room and continue with the initialization.
+  roomName = sessionStorage.getItem(GO_SNAKE_ID);
+  if (roomName) {
+    return true;
+  }
+
+  // if we do not have the name in storage then check to see if the window
+  // location contains a query string containing the id of the room.
+
+  // creating an anchor tag and assigning the href to the window location
+  // will automatically parse out the URL components ... sweet.
+  var parser = document.createElement('a');
+  parser.href = window.location.toString();
+
+  var hasRoom = QUERY_REGEX.exec(parser.search);
+  var roomId = hasRoom && hasRoom[2];
+  if (roomId) {
+    roomName = roomId.toString();
+    // add the cookie to the document.
+    sessionStorage.setItem(GO_SNAKE_ID, roomName);
+
+    // regenerate the URI without the go-SNAKE query parameter and reload
+    // the page with the new URI.
+    var beforeRoom = hasRoom[1];
+    if (beforeRoom[beforeRoom.length - 1] === '&') {
+      beforeRoom = beforeRoom.slice(0, beforeRoom.lengh - 1);
+    }
+    var searchStr = beforeRoom + hasRoom[3];
+    if (searchStr.length > 0) {
+      searchStr = '?' + searchStr;
+    }
+
+    parser.search = searchStr;
+
+    // set the new location and discontinue the initialization.
+    window.location = parser.href;
+    return false;
+  }
+
+  // there is no room to join for this SNAKE so simply create a new
+  // room and set the cookie in case of future refreshes.
+  var id = Math.floor(Math.random() * Math.pow(2, 32));
+  roomName = id.toString();
+  sessionStorage.setItem(GO_SNAKE_ID, roomName);
+
+  return true;
 }
 
 // If the user is unknown to us, try to get a username
@@ -448,6 +566,8 @@ $(window).on('beforeunload', function(){
   });
 });
 
+var arrowKeys=new Array(37,38,39,40);
+
 // Keyboard Controls
 $(document).keydown(function(e){
   var key = e.which;
@@ -462,12 +582,15 @@ $(document).keydown(function(e){
     currentSnake.direction = "down";
   }
 
+  if($.inArray(key,arrowKeys) > -1) {
+    e.preventDefault();
+  }
+
   snakeKey.key("/" + myUserName).set(currentSnake, function(err) {
     if(err) {
       throw err;
     }
   });
-  e.preventDefault();
 });
 
 
