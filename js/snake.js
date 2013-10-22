@@ -19,47 +19,75 @@ var INITIAL_SCORE = 0;
 var BLOCK_SIZE = 10;
 
 // food
-var food = {
-  color: 'black'
-};
+var food = {};
 
 // snakes
 var snakes = {};
 var snakeKey;
 
 var lobby;
+var el = {};
+var highScore;
 
 function initializeSnake(cb) {
   snakes[myUserName] = {
     blocks: [],
-    color: '',
-    currentScore: 0,
-    highScore: 0,
+    currentScore: INITIAL_SCORE,
     length: INITIAL_SNAKE_LENGTH,
     direction: ''
   };
-  for(var x = 0; x < snakes[myUserName].length; x++) {
-    snakes[myUserName].blocks[x] = { x: 0, y: 0 };
-  }
-  var snakeListener = function(val, context) {
-    var username = context.key.substr('/snakes/'.length);
-    snakes[username] = context.value;
-  };
-  snakeKey.on('set', { bubble:true, listener: snakeListener });
-  snakeKey.key("/" + myUserName).set(snakes[myUserName], function(err) {
+  el.userScore.text(INITIAL_SCORE);
+
+  // randomly select a color for the user
+  var userColors = new goinstant.widgets.UserColors({ room: lobby });
+  userColors.choose(function(err, color) {
     if (err) {
       throw err;
     }
-    snakeKey.get(function(err, value, context) {
+
+    $('.user-label').css('background-color',color);
+
+    // set that as their snake color
+    snakes[myUserName].color = color;
+
+    for(var x = 0; x < snakes[myUserName].length; x++) {
+      snakes[myUserName].blocks[x] = { x: 0, y: 0 };
+    }
+    var snakeListener = function(val, context) {
+      var username = context.key.substr('/snakes/'.length);
+      snakes[username] = context.value;
+    };
+    snakeKey.on('set', { bubble:true, listener: snakeListener });
+    snakeKey.key("/" + myUserName).set(snakes[myUserName], function(err) {
       if (err) {
         throw err;
       }
-      snakes = value;
-      spawnSnake(myUserName);
-      return cb();
+      snakeKey.get(function(err, value, context) {
+        if (err) {
+          throw err;
+        }
+        snakes = value;
+        spawnSnake(myUserName);
+        return cb();
+      });
     });
   });
 }
+function initializeHighScore(cb) {
+  var highScoreKey = lobby.key('/highScore');
+  highScoreKey.on('set', function(val, context) {
+    highScore = val;
+    el.highScore.text(highScore);
+  }.bind(this));
+  highScoreKey.get(function(err, val) {
+    if (err) {
+      throw err;
+    }
+    highScore = val;
+    return cb();
+  });
+}
+
 function initializeGame() {
 
   goinstant.connect(GOINSTANT_APP_URL, function (err, platform, room) {
@@ -69,15 +97,14 @@ function initializeGame() {
     lobby = room;
 
     snakeKey = lobby.key('/snakes');
-    food.key = lobby.key('/food');
-
 
     async.series([
-      initializeFood(next),
-      initializeSnake(next),
-      initializeUser(next),
-      initializeNotifications(next),
-      initializeGameLoop(next)
+      initializeUser,
+      initializeFood,
+      initializeHighScore,
+      initializeSnake,
+      initializeNotifications,
+      initializeGameLoop
     ], function(err) {
       if (err) {
         throw err;
@@ -87,7 +114,7 @@ function initializeGame() {
 }
 
 // If the user is unknown to us, try to get a username
-function initializeUsername(cb) {
+function initializeUser(cb) {
   myUserName = sessionStorage.getItem('gi_username');
   if (!myUserName) {
     myUserName = prompt('What is your name?', 'Guest');
@@ -112,11 +139,7 @@ function initializeUsername(cb) {
         throw err;
       }
       userList.initialize(function(err) {
-        // randomly select a color for the user
-        var userColors = new goinstant.widgets.UserColors({ room: lobby });
-        userColors.choose(function(err, color) {
-          snakes[myUserName].color = color;
-        });
+        return cb();
       });
     });
   });
@@ -126,25 +149,28 @@ function initializeNotifications(cb) {
   var notifications = new goinstant.widgets.Notifications();
 
   // Get all notifications of users joining
-  notifications.subscribe(lobby);
-
-  var msg = myUserName + ' has joined.';
-
-  // publish a notification of the new user
-  notifications.publish({
-    room: lobby,
-    type: 'success',
-    message: msg,
-    displayToSelf: true
-  }, function(err) {
+  notifications.subscribe(lobby, function(err) {
     if (err) {
       throw err;
     }
-    return cb();
+
+    // publish a notification of the new user
+    var msg = myUserName + ' has joined.';
+    notifications.publish({
+      room: lobby,
+      type: 'success',
+      message: msg,
+      displayToSelf: true
+    }, function(err) {
+      if (err) {
+        throw err;
+      }
+      return cb();
+    });
   });
 }
 
-function initializeGameLoop() {
+function initializeGameLoop(cb) {
   if(typeof gameTimer != "undefined") {
     clearInterval(gameTimer);
   }
@@ -153,17 +179,22 @@ function initializeGameLoop() {
 }
 
 function initializeFood(cb) {
+  food = {
+    key: lobby.key('/food'),
+    color: 'black',
+    position: {
+      x: 0,
+      y: 0
+    }
+  };
   var foodListener = function(val) {
-    food = { x: val.x, y: val.y };
+    food.position = val;
   };
 
   food.key.on('set', { local: true, listener: foodListener });
   food.key.get(function(err, value, context) {
     if (value) {
-      food = {
-        x: value.x,
-        y: value.y
-      };
+      food.position = value;
       return cb();
     }
     spawnFood(cb);
@@ -173,6 +204,7 @@ function initializeFood(cb) {
 function gameTick() {
   //Draw the canvas all the time to avoid trails.
   drawCanvas();
+  drawFood();
 
   //Move snakes & detect collisions
   _.each(_.keys(snakes), function(username) {
@@ -192,14 +224,13 @@ function gameTick() {
       if (checkFoodCollision(username)) {
 
         increaseSnakeLength(username);
-        spawnFood();
+        spawnFood(null);
         currentSnake.currentScore++;
+        el.userScore.text(currentSnake.currentScore);
         updateHighScore(username);
       }
     }
   });
-
-  drawFood();
 }
 
 function incrementSnakePosition(username) {
@@ -248,8 +279,10 @@ function increaseSnakeLength(username) {
 }
 
 function drawFood() {
+  canvas.context.beginPath();
   canvas.context.fillStyle = food.color;
-  canvas.context.fillRect((food.x*BLOCK_SIZE), (food.y*BLOCK_SIZE), BLOCK_SIZE, BLOCK_SIZE);
+  canvas.context.fillRect((food.position.x*BLOCK_SIZE), (food.position.y*BLOCK_SIZE), BLOCK_SIZE, BLOCK_SIZE);
+  canvas.context.stroke();
 }
 
 function drawSnake(currentSnake) {
@@ -267,6 +300,7 @@ function drawSnake(currentSnake) {
 
 // this will get rid of other snakes from lost connections, etc.
 function checkWallCollision(username) {
+  var currentSnake = snakes[username];
   if (currentSnake.blocks[0].y < -1 ||
        currentSnake.blocks[0].y > (canvas.height/BLOCK_SIZE) ||
        currentSnake.blocks[0].x < -1 ||
@@ -278,17 +312,23 @@ function checkWallCollision(username) {
 
 function checkFoodCollision(username) {
   var currentSnake = snakes[username];
-  if(currentSnake.blocks[0].y == food.y && currentSnake.blocks[0].x == food.x) {
+  if(currentSnake.blocks[0].y == food.position.y && currentSnake.blocks[0].x == food.position.x) {
     return true;
   }
   return false;
 }
 
 function updateHighScore(userName) {
-  var currentSnake = snakes[snakeUsername];
-  if(currentSnake.highScore < currentSnake.currentScore) {
-    currentSnake.highScore = currentSnake.currentScore;
+  var currentSnake = snakes[userName];
+  if(highScore < currentSnake.currentScore) {
+    highScore = currentSnake.currentScore;
+    lobby.key('/highScore').set(highScore, function(err) {
+      if(err) {
+        throw err;
+      }
+    });
   }
+  el.highScore.text(highScore);
 }
 
 function spawnSnake(snakeUsername) {
@@ -302,7 +342,8 @@ function spawnSnake(snakeUsername) {
   updateHighScore(snakeUsername);
 
   //Reset score
-  currentSnake.currentScore = INTIAL_SCORE;
+  currentSnake.currentScore = INITIAL_SCORE;
+  el.userScore.text(currentSnake.currentScore);
 
   //Find new spawn location
   var newPos = {
@@ -380,20 +421,22 @@ function drawCanvas() {
 }
 
 function spawnFood(cb) {
-  food = {
-    x: Math.round(Math.random()*((canvas.width-200)-BLOCK_SIZE)/BLOCK_SIZE), 
-    y: Math.round(Math.random()*(canvas.height-BLOCK_SIZE)/BLOCK_SIZE), 
-  };
-  food.key.set(food, function(err) {
+  food.position.x = Math.round(Math.random()*((canvas.width-200)-BLOCK_SIZE)/BLOCK_SIZE);
+  food.position.y = Math.round(Math.random()*(canvas.height-BLOCK_SIZE)/BLOCK_SIZE);
+  food.key.set(food.position, function(err) {
     if(err) {
       throw err;
     }
+    if (cb)
     return cb();
   });
 }
 
 $(document).ready(function () {
+  el.userScore = $(".user-score.score");
+  el.highScore = $(".high-score.right .score");
   // Init GoInstant
+
   initializeGame();
 });
 
@@ -418,13 +461,13 @@ $(document).keydown(function(e){
   } else if(key == "40" && currentSnake.direction != "up") {
     currentSnake.direction = "down";
   }
-  console.log("CurrentDirection:",snakes[myUserName].direction);
 
   snakeKey.key("/" + myUserName).set(currentSnake, function(err) {
     if(err) {
       throw err;
     }
   });
+  e.preventDefault();
 });
 
 
