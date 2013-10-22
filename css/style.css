@@ -1,0 +1,112 @@
+.left {
+  float: left; }
+
+.right {
+  float: right; }
+
+body {
+  background: #10416F;
+  -webkit-font-smoothing: antialiased; }
+
+#container {
+  width: 746px;
+  margin: 5em auto;
+  text-align: center;
+  color: white;
+  font-family: "proxima-nova", "proxima-nova-n4", Helvetica, Arial, sans-serif; }
+
+canvas {
+  border: 8px solid #0d3459;
+  border-top: 0;
+  border-radius: 0 0 5px 5px; }
+
+h1 {
+  color: white;
+  font-weight: 100;
+  letter-spacing: -1px;
+  font-size: 3em; }
+
+.hud {
+  padding: .5em;
+  border-radius: 5px 5px 0 0;
+  background-color: #0d3459; }
+  .hud:before, .hud:after {
+    content: " ";
+    display: table; }
+  .hud:after {
+    clear: both; }
+  .hud p {
+    margin: 0; }
+
+.user {
+  margin-top: -4px;
+  font-weight: bold;
+  text-transform: uppercase;
+  font-size: .9em; }
+
+.user-label {
+  position: relative;
+  display: inline-block;
+  top: 5px;
+  width: 24px;
+  height: 24px;
+  background-color: #fff;
+  border-radius: 2px 0 0 2px; }
+  .user-label:before {
+    display: block;
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2); }
+
+.score {
+  font-family: menlo, monospace;
+  font-weight: bold; }
+  .score.user-score {
+    position: relative;
+    top: -1px;
+    background-color: #134e85;
+    padding: 3px .5em 2px;
+    line-height: 1.5;
+    border-radius: 0 2px 2px 0;
+    font-size: 1.1em; }
+
+.high-score {
+  font-size: .9em;
+  color: rgba(255, 255, 255, 0.5);
+  margin: .35em; }
+  .high-score .score {
+    color: rgba(255, 255, 255, 0.75); }
+
+.instructions {
+  border-bottom: 1px solid #0d3459;
+  border-top: 1px solid #0d3459;
+  margin-top: 1em; }
+  .instructions:before, .instructions:after {
+    content: " ";
+    display: table; }
+  .instructions:after {
+    clear: both; }
+  .instructions p {
+    font-size: .95em;
+    margin: .5em 0;
+    padding: 0 1em .5em 1em;
+    color: #91ccd7; }
+
+.icon {
+  position: relative;
+  display: inline-block;
+  width: 30px;
+  height: 20px;
+  top: 4px;
+  margin-right: .2em;
+  background: url("../img/icons.png") no-repeat; }
+
+.icon-arrow-keys {
+  background-position: 1px center; }
+
+.icon-warning {
+  background-position: right center;
+  width: 30px;
+  top: 5px; }
