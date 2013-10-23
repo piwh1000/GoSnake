@@ -93,7 +93,7 @@ function initializeHighScore(cb) {
     if (err) {
       throw err;
     }
-    highScore = val;
+    highScore = val ? val : 0;
     return cb();
   });
 }
@@ -535,7 +535,7 @@ function spawnFood(cb) {
 
 $(document).ready(function () {
   el.userScore = $(".user-score.score");
-  el.highScore = $(".high-score.right .score");
+  el.highScore = $(".high-score .score");
   // Init GoInstant
 
   initializeGame();
