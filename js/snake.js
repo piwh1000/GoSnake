@@ -35,6 +35,11 @@ var lobby;
 var el = {};
 var highScore;
 
+function updateHUD() {
+  el.userScore.text(snakes[myUserId].currentScore);
+  el.highScore.text(highScore);
+}
+
 function initializeSnake(cb) {
   snakes[myUserId] = {
     blocks: [],
@@ -42,7 +47,7 @@ function initializeSnake(cb) {
     length: INITIAL_SNAKE_LENGTH,
     direction: ''
   };
-  el.userScore.text(INITIAL_SCORE);
+  updateHUD();
 
   // randomly select a color for the user
   var userColors = new goinstant.widgets.UserColors({ room: lobby });
@@ -83,7 +88,6 @@ function initializeHighScore(cb) {
   var highScoreKey = lobby.key('/highScore');
   highScoreKey.on('set', function(val, context) {
     highScore = val;
-    el.highScore.text(highScore);
   }.bind(this));
   highScoreKey.get(function(err, val) {
     if (err) {
@@ -345,8 +349,8 @@ function gameTick() {
         increaseSnakeLength(username);
         spawnFood(null);
         currentSnake.currentScore++;
-        el.userScore.text(currentSnake.currentScore);
         updateHighScore(username);
+        updateHUD();
       }
     }
   });
@@ -447,7 +451,6 @@ function updateHighScore(userName) {
       }
     });
   }
-  el.highScore.text(highScore);
 }
 
 function spawnSnake(snakeUsername) {
@@ -462,7 +465,7 @@ function spawnSnake(snakeUsername) {
 
   //Reset score
   currentSnake.currentScore = INITIAL_SCORE;
-  el.userScore.text(currentSnake.currentScore);
+  updateHUD();
 
   //Find new spawn location
   var newPos = {
@@ -496,10 +499,10 @@ function spawnSnake(snakeUsername) {
 
     switch(currentSnake.direction){
       case 'up':
-        currentSnake.blocks[x].y--;
+        currentSnake.blocks[x].y++;
         break;
       case 'down':
-        currentSnake.blocks[x].y++;
+        currentSnake.blocks[x].y--;
         break;
       case 'right':
         currentSnake.blocks[x].x--;
@@ -542,12 +545,19 @@ function drawCanvas() {
 function spawnFood(cb) {
   food.position.x = Math.round(Math.random()*((canvas.width-200)-BLOCK_SIZE)/BLOCK_SIZE);
   food.position.y = Math.round(Math.random()*(canvas.height-BLOCK_SIZE)/BLOCK_SIZE);
-  food.key.set(food.position, function(err) {
-    if(err) {
-      throw err;
-    }
-    if (cb)
-    return cb();
+  food.key.remove(function(err) {
+    food.key.set(food.position, { overwrite: false },function(err) {
+      if (err) {
+        if (err instanceof goinstant.errors.CollisionError) {
+          // mutex was already set by someone else, exit...
+          return cb();
+        }
+        throw err;
+      }
+      if (cb) {
+        return cb();
+      }
+    });
   });
 }
 
