@@ -127,9 +127,6 @@ function initializeGame() {
 }
 
 function initializeSharing(cb) {
-  // We are interested in knowing if there is a new query on the URL when the
-  // slide show is loaded. This detects the use of the query parameter in the
-  // default slide deck to change the transitions and themes.
   var parser = document.createElement('a');
   parser.href = window.location.toString();
 
@@ -154,6 +151,10 @@ function addShareButton(text) {
   var shareBtnWrap = $('.invite-a-friend')[0];
   //main.parentNode.insertBefore(shareBtn, main);
   $(shareBtnWrap).append(shareBtn);
+
+  var twitterSec = $('.twitter');
+  twitterSec.append('<a href="https://twitter.com/share" class="twitter-share-button" data-url="' + text + '" data-text="Come play a game of snakes with me." data-via="GoInstant">Tweet</a>');
+  twttr.widgets.load();
 }
 
 function setRoomName() {
