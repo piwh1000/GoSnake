@@ -4,6 +4,7 @@ $blueLight: lighten(#8DCAD6, 1%);
 
 $proximanova: 'proxima-nova', 'proxima-nova-n4', Helvetica, Arial, sans-serif;
 $monospace: menlo, monospace;
+$tachyon: "tachyon", sans-serif;
 
 @mixin clearfix {
   &:before, &:after {
@@ -25,16 +26,29 @@ $monospace: menlo, monospace;
 
 body {
   background: #10416F;
+  padding-top: 2em;
   -webkit-font-smoothing: antialiased;
+  font-family: $proximanova;
 }
 
 #container {
-  width: 746px;
-  margin: 5em auto;
-  text-align: center;
+  width: 900px;
+  margin: 1em auto 2em;
   color: white;
   font-family: $proximanova;
+  @include clearfix();
 }
+
+  #game {
+    float: left;
+    width: 745px;
+    margin-right: 8px;
+  }
+
+  #sidebar {
+    float: left;
+    width: 147px;
+  }
 
 canvas {
   border: 8px solid $blueDark;
@@ -43,10 +57,21 @@ canvas {
 }
 
 h1 {
-  color: white;
-  font-weight: 100;
+  margin: 0 0 .75em;
   letter-spacing: -1px;
-  font-size: 3em;
+  font-size: 2.5em;
+  font-weight: 100;
+  color: white;
+  font-family: $tachyon;
+}
+
+h4 {
+  margin: 0;
+  padding: .25em 0;
+  font-size: .8em;
+  text-transform: uppercase;
+  text-align: center;
+  color: $blueLight;
 }
 
 .hud {
@@ -100,24 +125,177 @@ h1 {
 }
 
 .high-score {
-  font-size: .9em;
-  color: fade-out(white, .5);
-  margin: .35em;
+  margin-bottom: .5em;
+  h4 {
+    border: 2px solid #124d89;
+    border-bottom: 0;
+    margin-bottom: 0;
+    line-height: 1.5;
+    border-radius: 3px 3px 0 0;
+  }
   .score {
-    color: fade-out(white, .25);
+    display: block;
+    color: white;
+    text-align: center;
+    font-size: 1.1em;
+    padding: .35em 0;
+    background-color: #1861ac;
+    border-radius: 0 0 3px 3px;
+  }
+}
+
+.gi-userlist.gi-override {
+  margin-bottom: 2em;
+  background: $blueDark;
+  border-radius: 3px;
+  ul {
+    background-color: $blueDark;
+    font-family: $proximanova;
+    font-weight: bold;
+    li {
+      height: auto;
+      border-bottom: 0;
+    }
+    .gi-name {
+      font-size: 1em;
+      padding: 6px 10px 0;
+      line-height: 1;
+    }
+    .gi-color {
+      border-radius: 2px;
+      &:before {
+        box-shadow: inset 0 0 0 1px rgba(255,255,255, 0.2);
+      }
+    }
+  }
+}
+
+.gi-override.gi-notify-container {
+  position: relative;
+  width: auto;
+  min-height: 0;
+  z-index: 1;
+  font-family: $proximanova;
+  font-size: 1em;
+  left: auto;
+  top: auto;
+  margin-left: 0;
+  .gi-notify {
+    border: 0;
+    background: none;
+    min-height: 0;
+    width: auto;
+    padding: 0;
+    margin: 0;
+  }
+  .gi-notify-icon {
+    display: none;
+  }
+  .gi-notify-body {
+    margin: 0;
+    padding: 0;
+    color: #FFF;
+  }
+  .gi-notify-close {
+    display: none;
+  }
+}
+
+.notify-container {
+  width: 100%;
+  text-align: center;
+  margin-top: .25em;
+}
+
+.invite-a-friend {
+  h4 {
+    margin-bottom: .25em;
+  }
+  input {
+    width: 100%;
+    border: 0;
+    padding: .5em;
+    background: $blueDark;
+    font-size: .8em;
+    color: $blueLight;
+    color: fade-out($blueLight, .25);
+    box-shadow: inset 0 1px 3px fade-out(black, .5);
+    border-radius: 3px;
+    box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    &:focus {
+      background-color: white;
+      color: $blueDark;
+      outline: 0;
+      box-shadow: 0;
+    }
   }
 }
 
 .instructions {
+  float: left;
+  width: 100%;
+  margin-top: 1em;
+  padding: 1em;
   @include clearfix();
   border-bottom: 1px solid $blueDark;
   border-top: 1px solid $blueDark;
-  margin-top: 1em;
   p {
-    font-size: .95em;
-    margin: .5em 0;
-    padding: 0 1em .5em 1em;
+    float: left;
+    margin: 0 .5em 0 0;
+    font-size: 1em;
     color: $blueLight;
+  }
+}
+
+.social {
+  float: right;
+  margin: .25em 0 0 0;
+  padding: 0;
+  list-style: none;
+  li {
+    float: right;
+    &.twitter {
+      width: 90px;
+    }
+  }
+}
+
+#footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  padding: .25em 0;
+  background-color: #1861ac;
+  text-align: center;
+  h6 {
+    margin: 1em 0;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-size: .7em;
+    font-weight: bold;
+    a {
+      color: #05284c;
+      text-decoration: none;
+      img {
+        position: relative;
+        top: -1px;
+        opacity: .8;
+      }
+      &:hover {
+        text-decoration: none;
+        color: $blueDark;
+        img {
+          opacity: 1;
+        }
+      }
+    }
+    span {
+      position: relative;
+      display: inline-block;
+      top: -7px;
+    }
   }
 }
 
@@ -136,7 +314,19 @@ h1 {
   }
 
   .icon-warning {
-    background-position: right center;
+    background-position: -30px center;
     width: 30px;
     top: 5px;
+  }
+
+  .icon-star {
+    background-position: -74px center;
+    width: 15px;
+    height: 15px;
+  }
+
+  .icon-add-user {
+    background-position: -96px center;
+    width: 15px;
+    height: 15px;
   }

@@ -147,42 +147,13 @@ function initializeSharing(cb) {
 
 function addShareButton(text) {
   var shareBtn = document.createElement('div');
-  var cssBtn = 'display: block; position: fixed; bottom: 1em; left: 0; ' +
-    'z-index: 9999; height: 17px; padding: 9px; font-size: 15px; ' +
-    'font-family: sans-serif; font-weight: bold; background: white; ' +
-    'border-radius: 0 3px 3px 0; border: 1px solid #ccc; ' +
-    'text-decoration: none; color: #15A815;';
-  var cssURL = 'font-weight: regular;';
-
-  shareBtn.innerHTML = 'Share';
-  shareBtn.style.cssText = cssBtn;
-
-  var main = document.getElementsByClassName('instructions')[0];
-  main.parentNode.insertBefore(shareBtn, main);
-
-  shareBtn.onmouseover = function() {
-    if (this.poppedOut) {
-      return;
-    }
-    this.poppedOut = true;
-
-    this.innerHTML +=
-      '<input id="gi-share-text" type="text" value="' + text +
-      '" style="margin: -5px 0 0 15px; padding: 5px; width: 180px;"/>';
-
-    this.style.width = '250px';
-    document.getElementById('gi-share-text').select();
-  };
-
-  shareBtn.onmouseout = function(evt) {
-    if (evt.relatedTarget && evt.relatedTarget.id === 'gi-share-text') {
-      return;
-    }
-    this.poppedOut = false;
-
-    this.innerHTML = 'Share';
-    this.style.width = 'auto';
-  };
+  $(shareBtn).addClass('share-btn');
+  
+  shareBtn.innerHTML = '<input id="gi-share-text" type="text" value="' + text + '"/>';
+  
+  var shareBtnWrap = $('.invite-a-friend')[0];
+  //main.parentNode.insertBefore(shareBtn, main);
+  $(shareBtnWrap).append(shareBtn);
 }
 
 function setRoomName() {
@@ -245,10 +216,14 @@ function initializeUser(cb) {
     }
     sessionStorage.setItem('gi_username', myUserName);
   }
+  
+  var userListElement = $('.user-list-container')[0];
+
   var userList = new goinstant.widgets.UserList({
     room: lobby,
     collapsed: false,
-    position: 'right'
+    position: 'right',
+    container: userListElement
   });
   lobby.self().get(function(err, val, userKey) {
     if (err) {
@@ -269,6 +244,7 @@ function initializeUser(cb) {
 } 
 
 function initializeNotifications(cb) {
+
   var notifications = new goinstant.widgets.Notifications();
 
   // Get all notifications of users joining
@@ -525,8 +501,6 @@ function drawDebugCanvas() {
     for(var y=0; y<(canvas.height/BLOCK_SIZE); y++) {
       canvas.context.fillStyle = "white";
       canvas.context.fillRect((x*BLOCK_SIZE), (y*BLOCK_SIZE), BLOCK_SIZE, BLOCK_SIZE);
-      canvas.context.strokeStyle = "black";
-      canvas.context.strokeRect((x*BLOCK_SIZE), (y*BLOCK_SIZE), BLOCK_SIZE, BLOCK_SIZE);
     }
   }
 }
@@ -537,8 +511,6 @@ function drawCanvas() {
   } else {
     canvas.context.fillStyle = "white";
     canvas.context.fillRect(0, 0, canvas.width, canvas.height);
-    canvas.context.strokeStyle = "black";
-    canvas.context.strokeRect(0, 0, canvas.width, canvas.height);			
   }
 }
 
