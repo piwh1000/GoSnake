@@ -470,8 +470,8 @@ function spawnSnake(snakeUsername) {
 
   //Find new spawn location
   var newPos = {
-    x: Math.round(Math.random()*(canvas.width/BLOCK_SIZE)),
-    y: Math.round(Math.random()*(canvas.height/BLOCK_SIZE))
+    x: Math.round(Math.random()*(canvas.width-BLOCK_SIZE)/BLOCK_SIZE),
+    y: Math.round(Math.random()*(canvas.height-BLOCK_SIZE)/BLOCK_SIZE)
   };
 
   //Set new direction
