@@ -170,41 +170,69 @@ h4 {
   }
 }
 
+/* New notification styles */
+
+// .gi-override.gi-notify-container {
+//   position: relative;
+//   width: auto;
+//   min-height: 0;
+//   z-index: 1;
+//   font-family: $proximanova;
+//   font-size: 1em;
+//   left: auto;
+//   top: auto;
+//   margin-left: 0;
+//   .gi-notify {
+//     border: 0;
+//     background: none;
+//     min-height: 0;
+//     width: auto;
+//     padding: 0;
+//     margin: 0;
+//   }
+//   .gi-notify-icon {
+//     display: none;
+//   }
+//   .gi-notify-body {
+//     margin: 0;
+//     padding: 0;
+//     color: #FFF;
+//   }
+//   .gi-notify-close {
+//     display: none;
+//   }
+// }
+
+// .notify-container {
+//   width: 100%;
+//   text-align: center;
+//   margin-top: .25em;
+// }
+
+/* Basic notification styles */
+
 .gi-override.gi-notify-container {
-  position: relative;
-  width: auto;
-  min-height: 0;
-  z-index: 1;
-  font-family: $proximanova;
-  font-size: 1em;
-  left: auto;
-  top: auto;
-  margin-left: 0;
   .gi-notify {
+    margin-top: 0;
     border: 0;
-    background: none;
-    min-height: 0;
-    width: auto;
-    padding: 0;
-    margin: 0;
+    border-radius: 0 0 3px 3px;
+    color: white;
+    font-family: $proximanova;
+    font-size: 1.1em;
+    font-weight: bold;
+  }
+  .gi-notify-success {
+    background-color: lighten(#007200, 5%);
   }
   .gi-notify-icon {
-    display: none;
+    padding: 8px 12px;
+    background: none;
+    border-right: 1px solid lighten(#007200, 10%);
   }
   .gi-notify-body {
-    margin: 0;
-    padding: 0;
-    color: #FFF;
+    margin-left: 55px;
+    padding: 5px;
   }
-  .gi-notify-close {
-    display: none;
-  }
-}
-
-.notify-container {
-  width: 100%;
-  text-align: center;
-  margin-top: .25em;
 }
 
 .invite-a-friend {

@@ -134,36 +134,25 @@ h4 {
       .gi-userlist.gi-override ul .gi-color:before {
         box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2); }
 
-.gi-override.gi-notify-container {
-  position: relative;
-  width: auto;
-  min-height: 0;
-  z-index: 1;
+/* New notification styles */
+/* Basic notification styles */
+.gi-override.gi-notify-container .gi-notify {
+  margin-top: 0;
+  border: 0;
+  border-radius: 0 0 3px 3px;
+  color: white;
   font-family: "proxima-nova", "proxima-nova-n4", Helvetica, Arial, sans-serif;
-  font-size: 1em;
-  left: auto;
-  top: auto;
-  margin-left: 0; }
-  .gi-override.gi-notify-container .gi-notify {
-    border: 0;
-    background: none;
-    min-height: 0;
-    width: auto;
-    padding: 0;
-    margin: 0; }
-  .gi-override.gi-notify-container .gi-notify-icon {
-    display: none; }
-  .gi-override.gi-notify-container .gi-notify-body {
-    margin: 0;
-    padding: 0;
-    color: #FFF; }
-  .gi-override.gi-notify-container .gi-notify-close {
-    display: none; }
-
-.notify-container {
-  width: 100%;
-  text-align: center;
-  margin-top: .25em; }
+  font-size: 1.1em;
+  font-weight: bold; }
+.gi-override.gi-notify-container .gi-notify-success {
+  background-color: #008c00; }
+.gi-override.gi-notify-container .gi-notify-icon {
+  padding: 8px 12px;
+  background: none;
+  border-right: 1px solid #00a500; }
+.gi-override.gi-notify-container .gi-notify-body {
+  margin-left: 55px;
+  padding: 5px; }
 
 .invite-a-friend h4 {
   margin-bottom: .25em; }
