@@ -15,7 +15,7 @@ var roomName;
 var query;
 
 //User stuff
-var myUserID = 0;
+var myUserId;
 var myUserName;
 
 //Defaults
@@ -36,7 +36,7 @@ var el = {};
 var highScore;
 
 function initializeSnake(cb) {
-  snakes[myUserName] = {
+  snakes[myUserId] = {
     blocks: [],
     currentScore: INITIAL_SCORE,
     length: INITIAL_SNAKE_LENGTH,
@@ -54,17 +54,17 @@ function initializeSnake(cb) {
     $('.user-label').css('background-color',color);
 
     // set that as their snake color
-    snakes[myUserName].color = color;
+    snakes[myUserId].color = color;
 
-    for(var x = 0; x < snakes[myUserName].length; x++) {
-      snakes[myUserName].blocks[x] = { x: 0, y: 0 };
+    for(var x = 0; x < snakes[myUserId].length; x++) {
+      snakes[myUserId].blocks[x] = { x: 0, y: 0 };
     }
     var snakeListener = function(val, context) {
       var username = context.key.substr('/snakes/'.length);
       snakes[username] = context.value;
     };
     snakeKey.on('set', { bubble:true, listener: snakeListener });
-    snakeKey.key("/" + myUserName).set(snakes[myUserName], function(err) {
+    snakeKey.key("/" + myUserId).set(snakes[myUserId], function(err) {
       if (err) {
         throw err;
       }
@@ -73,7 +73,7 @@ function initializeSnake(cb) {
           throw err;
         }
         snakes = value;
-        spawnSnake(myUserName);
+        spawnSnake(myUserId);
         return cb();
       });
     });
@@ -246,12 +246,13 @@ function initializeUser(cb) {
     collapsed: false,
     position: 'right'
   });
-  lobby.user(function(err, user, userKey) {
+  lobby.self().get(function(err, val, userKey) {
     if (err) {
       throw err;
     }
+    myUserId = val.id;
 
-    var displayNameKey = userKey.key('displayName');
+    var displayNameKey = lobby.self().key('displayName');
     displayNameKey.set(myUserName, function(err) {
       if (err) {
         throw err;
@@ -332,7 +333,7 @@ function gameTick() {
     incrementSnakePosition(username);
 
     // only with our snake
-    if(username == myUserName) {
+    if(username == myUserId) {
 
       if (checkWallCollision(username)) {
         spawnSnake(username);
@@ -511,7 +512,7 @@ function spawnSnake(snakeUsername) {
     }
   }
 
-  this.snakeKey.key("/" + snakeUsername).set(currentSnake, function(err) {
+  this.snakeKey.key("/" + myUserId).set(currentSnake, function(err) {
     if(err) throw err;
   });
 }
@@ -559,7 +560,7 @@ $(document).ready(function () {
 });
 
 $(window).on('beforeunload', function(){
-  snakeKey.key("/" + myUserName).remove(function(err, value, context) {
+  snakeKey.key("/" + myUserId).remove(function(err, value, context) {
     if (err) {
       throw err;
     }
@@ -571,7 +572,7 @@ var arrowKeys=new Array(37,38,39,40);
 // Keyboard Controls
 $(document).keydown(function(e){
   var key = e.which;
-  var currentSnake = snakes[myUserName];
+  var currentSnake = snakes[myUserId];
   if(key == "37" && currentSnake.direction != "right") {
     currentSnake.direction = "left";
   } else if(key == "38" && currentSnake.direction != "down") {
@@ -586,11 +587,13 @@ $(document).keydown(function(e){
     e.preventDefault();
   }
 
-  snakeKey.key("/" + myUserName).set(currentSnake, function(err) {
-    if(err) {
-      throw err;
-    }
-  });
+  if (myUserId && currentSnake) {
+    snakeKey.key("/" + myUserId).set(currentSnake, function(err) {
+      if(err) {
+        throw err;
+      }
+    });
+  }
 });
 
 
