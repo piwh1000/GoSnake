@@ -4,7 +4,7 @@
 	<title>GoInstant - Snakes</title>
 
   <!-- Typekit -->
-  <script type="text/javascript" src="//use.typekit.net/khl3mdc.js"></script>
+  <script type="text/javascript" src="//use.typekit.net/glz3xzc.js"></script>
   <script type="text/javascript">try{Typekit.load();}catch(e){}</script>
 
 	<!-- Javascript -->
@@ -24,26 +24,54 @@
     <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
+  <div id="fb-root"></div>
+  <script>(function(d, s, id) {
+    var js, fjs = d.getElementsByTagName(s)[0];
+    if (d.getElementById(id)) return;
+    js = d.createElement(s); js.id = id;
+    js.src = "//connect.facebook.net/en_US/all.js#xfbml=1&appId=109125822569083";
+    fjs.parentNode.insertBefore(js, fjs);
+  }(document, 'script', 'facebook-jssdk'));</script>
   <div id="container">
   	<h1>GoSnake</h1>
   	<!-- Lets make a simple snake game -->
-    <div class="hud">
-      <div class="user left">
-        <p><span class="user-label"></span><span class="user-score score">0</span></p>
+    <div id="game">
+      <div class="hud">
+        <div class="user left">
+          <p><span class="user-label"></span><span class="user-score score">0</span></p>
+        </div>
+        <!-- <div class="notify-container">Thomas has joined.</div> -->
       </div>
-      <div class="high-score right">
-        <p>High Score: <span class="score">0</span></p>
+    	<div id="canvas-container">
+        <canvas id="canvas" width="729" height="500"></canvas>
       </div>
     </div>
-  	<div id="canvas-container">
-      <canvas id="canvas" width="730" height="500"></canvas>
+    <div id="sidebar">
+      <div class="high-score">
+        <h4><i class="icon icon-star"></i>High Score</h4>
+        <span class="score">0</span>
+      </div>
+      <div class="user-list-container"></div>
+      <div class="invite-a-friend">
+        <h4><i class="icon icon-add-user"></i>Invite a Friend</h4>
+      </div>
     </div>
     <div class="instructions">
-      <p class="left"><i class="icon icon-arrow-keys"></i> Use your arrow keys to move the snake.</p>
-      <p class="right"><i class="icon icon-warning"></i> Walls reset your snake and your score.</p>
+      <p><i class="icon icon-arrow-keys"></i> Use your arrow keys to move the snake.</p>
+      <p><i class="icon icon-warning"></i> Walls reset your snake and your score.</p>
+      <ul class="social">
+        <li class="fb"><div class="fb-like" data-href="https://github.com/piwh1000/GoInstantNodeKnockout" data-width="The pixel width of the plugin" data-colorscheme="dark" data-layout="button_count" data-action="like" data-show-faces="true" data-send="false"></div></li>
+        <li class="twitter"><a href="https://twitter.com/share" class="twitter-share-button" data-url="https://github.com/piwh1000/GoInstantNodeKnockout" data-text="Multiplayer snake! GoInstant + classic Snake." data-via="GoInstant">Tweet</a>
+<script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+'://platform.twitter.com/widgets.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'twitter-wjs');</script></li>
+      </ul>
+    </div>
+    <div id="footer">
+      <h6><a title="Get started using GoInstant" href="https://developers.goinstant.com/v1/index.html" target="_blank"><span>Powered by</span> <img src="img/goinstant.png" alt="GoInstant"></a></h6>
     </div>
   	<script src="js/snake.js"></script>
   </div>
+  <!--Fork button-->
+  <a href="https://github.com/piwh1000/GoInstantNodeKnockout"><img style="position: absolute; top: 0; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_green_007200.png" alt="Fork me on GitHub"></a>
 </body>	
 </html>
 
