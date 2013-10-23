@@ -304,7 +304,6 @@ function initializeGameLoop(cb) {
 function initializeFood(cb) {
   food = {
     key: lobby.key('/food'),
-    mutex: lobby.key('/mutex/food'),
     color: 'black',
     position: {
       x: 0,
@@ -551,7 +550,7 @@ function spawnFood(cb) {
       if (err) {
         if (err instanceof goinstant.errors.CollisionError) {
           // mutex was already set by someone else, exit...
-          return;
+          return cb();
         }
         throw err;
       }
