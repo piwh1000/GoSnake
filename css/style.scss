@@ -149,17 +149,21 @@ h4 {
   background: $blueDark;
   border-radius: 3px;
   ul {
-    background-color: $blueDark;
+    background: $blueDark;
     font-family: $proximanova;
     font-weight: bold;
     li {
       height: auto;
       border-bottom: 0;
+      &.gi-local-user {
+        background: none;
+      }
     }
     .gi-name {
       font-size: 1em;
       padding: 6px 10px 0;
       line-height: 1;
+      width: 69px;
     }
     .gi-color {
       border-radius: 2px;
@@ -168,6 +172,21 @@ h4 {
       }
     }
   }
+  .gi-options {
+    input {
+      width: 69px;
+      background: #0D3459;
+      color: #FFF;
+      font-family: $proximanova;
+      font-size: 1em;
+    }
+    span {
+      background: url('../img/options.png');
+    }
+    &.set span {
+      background: url('../img/set.png');
+     }
+   }
 }
 
 /* New notification styles */
