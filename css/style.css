@@ -119,20 +119,33 @@ h4 {
   background: #0d3459;
   border-radius: 3px; }
   .gi-userlist.gi-override ul {
-    background-color: #0d3459;
+    background: #0d3459;
     font-family: "proxima-nova", "proxima-nova-n4", Helvetica, Arial, sans-serif;
     font-weight: bold; }
     .gi-userlist.gi-override ul li {
       height: auto;
       border-bottom: 0; }
+      .gi-userlist.gi-override ul li.gi-local-user {
+        background: none; }
     .gi-userlist.gi-override ul .gi-name {
       font-size: 1em;
       padding: 6px 10px 0;
-      line-height: 1; }
+      line-height: 1;
+      width: 69px; }
     .gi-userlist.gi-override ul .gi-color {
       border-radius: 2px; }
       .gi-userlist.gi-override ul .gi-color:before {
         box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2); }
+  .gi-userlist.gi-override .gi-options input {
+    width: 69px;
+    background: #0D3459;
+    color: #FFF;
+    font-family: "proxima-nova", "proxima-nova-n4", Helvetica, Arial, sans-serif;
+    font-size: 1em; }
+  .gi-userlist.gi-override .gi-options span {
+    background: url("../img/options.png"); }
+  .gi-userlist.gi-override .gi-options.set span {
+    background: url("../img/set.png"); }
 
 /* New notification styles */
 /* Basic notification styles */
