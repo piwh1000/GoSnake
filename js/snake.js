@@ -400,12 +400,14 @@ function drawFood() {
 function drawSnake(currentSnake) {
   canvas.context.fillStyle = currentSnake.color;
   for(var x = currentSnake.length-1; x >= 0; x--) {
-    canvas.context.fillRect((currentSnake.blocks[x].x*BLOCK_SIZE), (currentSnake.blocks[x].y*BLOCK_SIZE), BLOCK_SIZE, BLOCK_SIZE);
+    if(x) {
+      canvas.context.fillRect((currentSnake.blocks[x].x*BLOCK_SIZE), (currentSnake.blocks[x].y*BLOCK_SIZE), BLOCK_SIZE, BLOCK_SIZE);
 
-    //Inherit past position, only on our snake
-    if(x > 0) {
-      currentSnake.blocks[x].x = currentSnake.blocks[x-1].x;
-      currentSnake.blocks[x].y = currentSnake.blocks[x-1].y;
+      //Inherit past position, only on our snake
+      if(x > 0) {
+        currentSnake.blocks[x].x = currentSnake.blocks[x-1].x;
+        currentSnake.blocks[x].y = currentSnake.blocks[x-1].y;
+      }
     }
   }
 }
