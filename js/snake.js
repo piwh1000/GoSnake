@@ -347,19 +347,21 @@ function gameTick() {
 
 function incrementSnakePosition(username) {
   var currentSnake = snakes[username];
-  switch(currentSnake.direction) {
-    case 'up':
-      currentSnake.blocks[0].y--;
-      break;
-    case 'down':
-      currentSnake.blocks[0].y++;
-      break;
-    case 'left':
-      currentSnake.blocks[0].x--;
-      break;
-    case 'right':
-      currentSnake.blocks[0].x++;
-      break;
+  if(currentSnake.blocks[0] && currentSnake.blocks[0].y && currentSnake.blocks[0].x) {
+    switch(currentSnake.direction) {
+      case 'up':
+        currentSnake.blocks[0].y--;
+        break;
+      case 'down':
+        currentSnake.blocks[0].y++;
+        break;
+      case 'left':
+        currentSnake.blocks[0].x--;
+        break;
+      case 'right':
+        currentSnake.blocks[0].x++;
+        break;
+    }
   }
 }
 
@@ -400,7 +402,7 @@ function drawFood() {
 function drawSnake(currentSnake) {
   canvas.context.fillStyle = currentSnake.color;
   for(var x = currentSnake.length-1; x >= 0; x--) {
-    if(x) {
+    if(currentSnake.blocks[x] && currentSnake.blocks[x].x && currentSnake.blocks[x].y) {
       canvas.context.fillRect((currentSnake.blocks[x].x*BLOCK_SIZE), (currentSnake.blocks[x].y*BLOCK_SIZE), BLOCK_SIZE, BLOCK_SIZE);
 
       //Inherit past position, only on our snake
@@ -415,9 +417,10 @@ function drawSnake(currentSnake) {
 // this will get rid of other snakes from lost connections, etc.
 function checkWallCollision(username) {
   var currentSnake = snakes[username];
-  if (currentSnake.blocks[0].y < -1 ||
+
+  if (currentSnake.blocks[0].y <= 0 ||
        currentSnake.blocks[0].y > (canvas.height/BLOCK_SIZE) ||
-       currentSnake.blocks[0].x < -1 ||
+       currentSnake.blocks[0].x <= 0 ||
        currentSnake.blocks[0].x > (canvas.width/BLOCK_SIZE)) {
     return true;
   }
