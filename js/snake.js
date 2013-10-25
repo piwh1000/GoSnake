@@ -347,7 +347,6 @@ function gameTick() {
 
 function incrementSnakePosition(username) {
   var currentSnake = snakes[username];
-  if(currentSnake.blocks[0] && currentSnake.blocks[0].y && currentSnake.blocks[0].x) {
     switch(currentSnake.direction) {
       case 'up':
         currentSnake.blocks[0].y--;
@@ -361,7 +360,6 @@ function incrementSnakePosition(username) {
       case 'right':
         currentSnake.blocks[0].x++;
         break;
-    }
   }
 }
 
@@ -402,7 +400,7 @@ function drawFood() {
 function drawSnake(currentSnake) {
   canvas.context.fillStyle = currentSnake.color;
   for(var x = currentSnake.length-1; x >= 0; x--) {
-    if(currentSnake.blocks[x] && currentSnake.blocks[x].x && currentSnake.blocks[x].y) {
+    if(typeof(currentSnake.blocks[x].x) != 'undefined' && typeof(currentSnake.blocks[x].y) != 'undefined') {
       canvas.context.fillRect((currentSnake.blocks[x].x*BLOCK_SIZE), (currentSnake.blocks[x].y*BLOCK_SIZE), BLOCK_SIZE, BLOCK_SIZE);
 
       //Inherit past position, only on our snake
@@ -418,9 +416,9 @@ function drawSnake(currentSnake) {
 function checkWallCollision(username) {
   var currentSnake = snakes[username];
 
-  if (currentSnake.blocks[0].y <= 0 ||
+  if (currentSnake.blocks[0].y < 0 ||
        currentSnake.blocks[0].y > (canvas.height/BLOCK_SIZE) ||
-       currentSnake.blocks[0].x <= 0 ||
+       currentSnake.blocks[0].x < 0 ||
        currentSnake.blocks[0].x > (canvas.width/BLOCK_SIZE)) {
     return true;
   }
@@ -533,7 +531,7 @@ function drawCanvas() {
 }
 
 function spawnFood(cb) {
-  food.position.x = Math.round(Math.random()*((canvas.width-200)-BLOCK_SIZE)/BLOCK_SIZE);
+  food.position.x = Math.round(Math.random()*(canvas.width-BLOCK_SIZE)/BLOCK_SIZE);
   food.position.y = Math.round(Math.random()*(canvas.height-BLOCK_SIZE)/BLOCK_SIZE);
   food.key.remove(function(err) {
     food.key.set(food.position, { overwrite: false },function(err) {
