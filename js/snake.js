@@ -527,14 +527,6 @@ function drawCanvas() {
   }
 }
 
-/* fixing HN crashing */
-function getParameterByName(name) {
-    name = name.replace(/[\[]/, "\\\[").replace(/[\]]/, "\\\]");
-    var regex = new RegExp("[\\?&]" + name + "=([^&#]*)"),
-        results = regex.exec(location.search);
-    return results == null ? "" : decodeURIComponent(results[1].replace(/\+/g, " "));
-}
-
 function spawnFood(cb) {
   food.position.x = Math.round(Math.random()*((canvas.width-200)-BLOCK_SIZE)/BLOCK_SIZE);
   food.position.y = Math.round(Math.random()*(canvas.height-BLOCK_SIZE)/BLOCK_SIZE);
@@ -555,20 +547,16 @@ function spawnFood(cb) {
 }
 
 $(document).ready(function () {
-  if(getParameterByName('go_snake_room') == 2041207911) {
-    window.location = 'http://piwh1000.github.io/GoSnake/';
-  } else {
-    el.userScore = $(".user-score.score");
-    el.highScore = $(".high-score .score");
-    // Init GoInstant
+  el.userScore = $(".user-score.score");
+  el.highScore = $(".high-score .score");
+  // Init GoInstant
 
-    initializeGame();
+  initializeGame();
 
-    // modal close
-    $(".close").click(function() {
-      $("#modal-outer").hide();
-    });
-  }
+  // modal close
+  $(".close").click(function() {
+    $("#modal-outer").hide();
+  });
 });
 
 $(window).on('beforeunload', function(){
