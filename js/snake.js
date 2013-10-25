@@ -557,18 +557,18 @@ function spawnFood(cb) {
 $(document).ready(function () {
   if(getParameterByName('go_snake_room') == 2041207911) {
     window.location = 'http://piwh1000.github.io/GoSnake/';
+  } else {
+    el.userScore = $(".user-score.score");
+    el.highScore = $(".high-score .score");
+    // Init GoInstant
+
+    initializeGame();
+
+    // modal close
+    $(".close").click(function() {
+      $("#modal-outer").hide();
+    });
   }
-
-  el.userScore = $(".user-score.score");
-  el.highScore = $(".high-score .score");
-  // Init GoInstant
-
-  initializeGame();
-
-  // modal close
-  $(".close").click(function() {
-    $("#modal-outer").hide();
-  });
 });
 
 $(window).on('beforeunload', function(){
