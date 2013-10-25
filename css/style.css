@@ -269,3 +269,84 @@ h4 {
   background-position: -96px center;
   width: 15px;
   height: 15px; }
+
+
+/* modal wrapper */
+#modal-outer {
+  display: none;
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 9999;
+  background: gray;
+  background: rgba(0, 0, 0, .5);
+  filter: alpha(opacity=50);
+  -ms-filter: "progid:DXImageTransform.Microsoft.Alpha(Opacity=50)";
+}
+#modal-outer:target {
+  display: block;
+}
+
+/* modal inner */
+#modal {
+  width: 510px;
+  height: auto;
+  visibility: visible;
+  display: block;
+  z-index: 6000;
+  padding: 20px;
+  position: relative;
+  margin: 90px auto 40px;
+  overflow: visible;
+  background-color: white;
+  border: 1px solid #CCC  9;
+  -webkit-background-clip: padding-box;
+  -moz-background-clip: padding;
+  background-clip: padding-box;
+  -webkit-border-radius: 6px;
+  -moz-border-radius: 6px;
+  border-radius: 6px;
+  -webkit-box-shadow: 0 4px 12px rgba(0, 0, 0, .4),inset 0 1px 0 rgba(255, 255, 255, .5);
+  -moz-box-shadow: 0 4px 12px rgba(0, 0, 0, .4),inset 0 1px 0 rgba(255, 255, 255, .5);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, .4),inset 0 1px 0 rgba(255, 255, 255, .5);
+}
+
+/* modal close button */
+#modal a[href="#close"] {
+  position: absolute;
+  right: 0;
+  top: 0;
+  color: transparent;
+  font-size: 0px;
+}
+#modal a[href="#close"]:focus {
+  outline: none;
+}
+#modal a[href="#close"]:after {
+  content: 'X';
+  display: block;
+  position: absolute;
+  right: -16px;
+  top: -16px;
+  width: 20px;
+  height: 15px;
+  padding: 11px 7px 8px 7px;
+  text-decoration: none;
+  text-shadow: none;
+  text-align: center;
+  background: black;
+  color: white;
+  border: 3px solid white;
+  -moz-border-radius: 20px;
+  border-radius: 40px;
+  -webkit-box-shadow: 0 1px 3px rgba(0,0,0,0.5);
+  -moz-box-shadow: 0 1px 3px rgba(0,0,0,0.5);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.5);
+  font-size: 12px;
+  font-weight: bold;
+}
+#modal a[href="#close"]:focus:after {
+  outline: 1px solid #000;
+}

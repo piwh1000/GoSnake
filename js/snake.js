@@ -152,9 +152,22 @@ function addShareButton(text) {
   //main.parentNode.insertBefore(shareBtn, main);
   $(shareBtnWrap).append(shareBtn);
 
-  var twitterSec = $('.twitter');
-  twitterSec.append('<a href="https://twitter.com/share" class="twitter-share-button" data-url="' + text + '" data-text="Come play a game of snakes with me." data-via="GoInstant">Tweet</a>');
-  twttr.widgets.load();
+  // Ask to share
+  if(inSharedRoom() == false) {
+    $('#facebook-link').attr("href", "http://www.facebook.com/sharer.php?src=sp&u=" + encodeURIComponent(text));
+    $('#twitter-link').attr("href", "https://twitter.com/intent/tweet?text=" + encodeURIComponent("Come play multiplayer snakes against me on GoSnake. " + text) +"&source=goinstant");
+    $("#modal-outer").show();
+  }
+}
+
+function inSharedRoom() {
+  var field = 'go_snake_room';
+  var url = window.location.href;
+  if(url.indexOf('?' + field + '=') != -1)
+      return true;
+  else if(url.indexOf('&' + field + '=') != -1)
+      return true;
+  return false
 }
 
 function setRoomName() {
@@ -540,6 +553,11 @@ $(document).ready(function () {
   // Init GoInstant
 
   initializeGame();
+
+  // modal close
+  $(".close").click(function() {
+    $("#modal-outer").hide();
+  });
 });
 
 $(window).on('beforeunload', function(){
@@ -578,5 +596,3 @@ $(document).keydown(function(e){
     });
   }
 });
-
-
